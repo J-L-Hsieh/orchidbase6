@@ -1,0 +1,31 @@
+*{
+	font-family: 微軟正黑體;
+}
+.content{
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items:center;
+	
+}
+#input_ex{
+    border: lightslategrey solid 1px;
+    margin: 2vh;
+    padding: 2vh;
+}
+#input_area{
+    border: lightslategrey solid 1px;
+    margin: 2vh;
+    padding: 2vh;
+}
+#output_area{
+    border: lightslategrey solid 1px;
+    margin: 2vh;
+    padding: 2vh;
+}
+
+#layout {
+	text-align: center;
+
+	display: none;
+}

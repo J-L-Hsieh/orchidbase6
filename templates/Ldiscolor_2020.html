@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+{% block script_var %}
+
+<head>
+    <script type="text/javascript" src="{% static 'js/jquery-2.1.1.min.js' %}"></script>
+    <!--需要此jquery執行幻燈片-->
+    <link rel="stylesheet" type="text/css" href="{% static 'css/superfish.css' %}" media="screen">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/Style.css' %}">
+    <!--需要此css置中用-->
+    <!-- semanticUI -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
+    <link rel="stylesheet" type="text/css"
+        href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css">
+
+    <link type="text/css" href="{% static 'css/skitter.styles.css' %}" media="all" rel="stylesheet" />
+    <script type="text/javascript" src="{% static 'js/jquery.easing.1.3.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/jquery.animate-colors-min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/jquery.skitter.min.js' %}"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('.ui.dropdown').dropdown({ on: 'hover' });
+        });
+    </script>
+    <script type="text/javascript" language="javascript">
+        $(document).ready(function () {
+            $(".box_skitter_large").skitter();
+            $('.box_skitter_large').skitter({ interval: 3000 });
+        });
+        jQuery(function () {
+            jQuery('ul.sf-menu').superfish();
+        });
+        function openURL(sURL) {
+            opener.document.location = sURL;
+        };
+    </script>
+    <!--需要此style刻出清單表格-->
+    <style type="text/css">
+        .style1 {
+            width: 800px;
+            vertical-align: top;
+            text-align: left;
+        }
+
+        .style4 {
+            color: #FFFFFF;
+            background-color: #0066CC;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        A:link {
+            color: White;
+        }
+
+        A:visited {
+            color: White;
+        }
+
+        A:active {
+            color: Red;
+        }
+
+        A:hover {
+            Background-color: Lime
+        }
+    </style>
+</head>
+{% endblock %}
+
+{% block form %}
+
+<body>
+    <form id="form1" runat="server">
+        <div id="container" class="ui-tabs ui-widget ui-widget-content ui-corner-all" style="width:1100px">
+            <header id="mainHeader">
+                <img src="{% static 'img/banner.jpg' %}" alt="Banner" />
+            </header>
+            <br><br><br>
+            <div id="content">
+                <table style="width:1100px;">
+                    <tr>
+                        <td colspan="9" bgcolor="#66CCFF" style="text-align: center">Apostasia shenzhenica genome</td>
+                    </tr>
+                    <tr>
+                        <td class="style4">
+                            <a href="#">Genome Browser</a>
+                        </td>
+                        <td class="style4">
+                            <a href="#">Gene
+                                annotation</a>
+                        </td>
+                        <td class="style4"><a href="#">Gene expression </a></td>
+                        <td class="style4"><a href="#">Metabolism pathway</a></td>
+                        <td class="style4"><a href="#">Synteny</a></td>
+                        <td class="style4"><a href="#">GeneOrder</a></td>
+                        <td class="style4"><a href="#">miRNA</a></td>
+                        <td class="style4"><a
+                                href="https://cosbi.ee.ncku.edu.tw/orchidbase6/promoter/?type=Ldiscolor">Regulation</a>
+                        </td>
+                    </tr>
+                </table>
+                <br />
+                <table style="font-size: medium;width=1100px" align="center">
+                    <tr>
+                        <td class="style1">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The Apostasioideae are a small subfamily of
+                            orchids that includes only two genera (Apostasia and Neuwiedia), consisting of terrestrial
+                            species confined to the humid areas of southeast Asia, Japan, and northern Australia.
+                            Although Apostasioideae share some synapomorphies with other orchids (for example, small
+                            seeds with a reduced embryo and a myco-heterotrophic protocorm stage), they possess several
+                            unique traits, the most conspicuous of which is their floral morphology. Apostasia has a
+                            non-resupinate, solanum-type flower with anthers closely encircling the stigma (including
+                            postgenital fusion), a long ovary, and an actinomorphic perianth with an undifferentiated
+                            labellum. Three stamens (two of which are fertile) are basally fused to the style, forming a
+                            relatively simple gynostemium, and the anthers contain powdery pollen (grains not unified
+                            into pollinia). These characteristics differ from those of other Orchidaceae subfamilies,
+                            which have three sepals, three petals (of which one has specialized to form the labellum),
+                            and stamens and pistil fused into a more complex gynostemium , but are similar to those of
+                            some species of Hypoxidaceae (a sister family to Orchidaceae, in the order Asparagales).
+
+                            <a href="https://www.nature.com/articles/nature23897" target="_blank"
+                                style="color:Blue">“The Apostasia genome and the evolution of orchids”. Cai et al. 2017.
+                                Nature.</a>
+                        </td>
+                        <td valign="top">
+                            <div class="box_skitter box_skitter_large" style="z-index:-1">
+                                <ul>
+                                    <li>
+                                        <a href="#cut"><img src="{% static 'img/Apostasia_01.jpg' %}" class="cut" /></a>
+                                        <div class="label_text">
+                                            <p>Apostasia</p>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <a href="#swapBlocks"><img src="{% static 'img/Apostasia_02.jpg' %}"
+                                                class="swapBlocks" /></a>
+                                        <div class="label_text">
+                                            <p>Apostasia</p>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <a href="#swapBarsBack"><img src="{% static 'img/nature_Apostasia.jpg' %}"
+                                                class="swapBarsBack" /></a>
+                                        <div class="label_text">
+                                            <p>MADS-box genes involved in orchid morphological evolution.</p>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <footer id="footer" />
+        </div>
+    </form>
+</body>
+
+{% endblock %}

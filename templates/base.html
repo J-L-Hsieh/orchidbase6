@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+{% load staticfiles %}
+<html>
+
+<head>
+    {% block script_var %}{% endblock %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/superfish.css' %}" media="screen">
+
+    <!--需要此css置中用-->
+    <link rel="stylesheet" type="text/css" href="{% static 'css/Style.css' %}">
+
+    <!--booststrap的ui.dropdown要放在semanticUI之前才會起作用-->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <!-- semanticUI -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
+    <link rel="stylesheet" type="text/css"
+        href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css">
+
+    <!--ui.dropdown-->
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('.ui.dropdown').dropdown({ on: 'hover' });
+        });
+    </script>
+
+
+    <title>{% block title %}OrchidBase 6.0{% endblock %}</title>
+
+    {% block script %}{% endblock %}
+
+</head>
+
+<body>
+    <div class="ui blue inverted menu huge squ stackable">
+        <div class="header item">OrchidBase 6.0</div>
+        <div class="right menu">
+
+            <a class="item" href="http://cosbi.ee.ncku.edu.tw/orchidbase6/home/">
+                <i class="home icon"></i>
+                Home
+            </a>
+            <div class="ui dropdown item">
+                <i class="eye icon"></i>
+                About OrchidBase
+                <div class="menu transition hidden">
+                    <a href="#">
+                        <div class="item active selected">
+                            <font color="black">Orchid in Wikipedia</font>
+                        </div>
+                    </a>
+                    <a href="#">
+                        <div class="item">
+                            <font color="black">Development and Goals</font>
+                        </div>
+                    </a>
+                    <a href="#">
+                        <div class="item">
+                            <font color="black">Database Statistics</font>
+                        </div>
+                    </a>
+                    <a href="#">
+                        <div class="item">
+                            <font color="black">Characteristics of orchid species</font>
+                        </div>
+                    </a>
+                    <a href="#">
+                        <div class="item">
+                            <font color="black">Contact</font>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            <div class="ui dropdown item">
+                <i class="database icon"></i>
+                Orchid Genome (<font color="#f76363">New!</font>)
+                <div class="menu transition hidden">
+                    <a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/Phalaenopsis_2020/">
+                        <div class="item">
+                            <font color="black">Phalaenopsis equestris</font>
+                        </div>
+                    </a>
+                    <a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/Dendrobium_2020/">
+                        <div class="item">
+                            <font color="black">Dendrobium catenatum</font>
+                        </div>
+                    </a>
+                    <a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/Apostasia_2020/">
+                        <div class="item">
+                            <font color="black">Apostasia shenzhenica</font>
+                        </div>
+                    </a>
+                    <a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/Vpompona_2020/">
+                        <div class="item">
+                            <font color="black">Vanilla pompona</font>
+                        </div>
+                    </a>
+                    <a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/Vshenzhenica_2020/">
+                        <div class="item">
+                            <font color="black">Vanilla shenzhenica</font>
+                        </div>
+                    </a>
+                    <a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/Pguangdongensis_2020/">
+                        <div class="item">
+                            <font color="black">Platanthera guangdongensis</font>
+                        </div>
+                    </a>
+                    <a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/Pzijinensis_2020/">
+                        <div class="item">
+                            <font color="black">Platanthera zijinensis</font>
+                        </div>
+                    </a>
+                    <a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/Ldiscolor_2020/">
+                        <div class="item">
+                            <font color="black">Ludisia discolor</font>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            <div class="ui dropdown item">
+                <i class="database icon"></i>
+                Transcriptome (<font color="#f76363">New!</font>)
+                <div class="menu transition hidden">
+                    <a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/Transcriptome/?type=Phalaenopsis">
+                        <div class="item active selected">
+                            <font color="black">Phalaenopsis equestris</font>
+                        </div>
+                    </a>
+                    <a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/Transcriptome/?type=Dendrobium">
+                        <div class="item">
+                            <font color="black">Dendrobium catenatum</font>
+                        </div>
+                    </a>
+                    <a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/Transcriptome/?type=Apostasia">
+                        <div class="item">
+                            <font color="black">Apostasia shenzhenica</font>
+                        </div>
+                    </a>
+                    <a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/Transcriptome/?type=Vshenzhenica">
+                        <div class="item">
+                            <font color="black">Vanilla shenzhenica</font>
+                        </div>
+                    </a>
+                    <a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/Transcriptome/?type=Pguangdongensis">
+                        <div class="item">
+                            <font color="black">Platanthera guangdongensis</font>
+                        </div>
+                    </a>
+                    <a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/Transcriptome/?type=Pzijinensis">
+                        <div class="item">
+                            <font color="black">Platanthera zijinensis</font>
+                        </div>
+                    </a>
+                    <a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/Transcriptome/?type=Ldiscolor">
+                        <div class="item">
+                            <font color="black">Ludisia discolor</font>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            <a class="item" href="http://cosbi.ee.ncku.edu.tw/orchidbase6/tools/" id="nav_tutorial">
+                <i class="wrench icon"></i>
+                Tools (<font color="#f76363">New!</font>)
+            </a>
+            <a class="item" href="#" id="nav_tutorial">
+                <i class="download icon"></i>
+                Download (<font color="#f76363">New!</font>)
+            </a>
+
+            <a class="item" href="#" id="nav_contact">
+                <i class="info icon"></i>
+                Help
+            </a>
+        </div>
+    </div>
+
+    {% block form %}{% endblock %}
+
+</body>
+
+</html>

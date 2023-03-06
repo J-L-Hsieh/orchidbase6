@@ -1,0 +1,2514 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+{% block script_var %}
+
+<head>
+    <title>Hmmer</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!--<link rel="stylesheet" href="{% static 'css/hmmer.css' %}">-->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.22/css/jquery.dataTables.css">
+    <script type="text/javascript" charset="utf8"
+        src="https://cdn.datatables.net/1.10.22/js/jquery.dataTables.js"></script>
+    <script src="{% static 'js/jquery.blockUI.js' %}"></script>
+    <!--讀取中-->
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <!--進度條-->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <!--畫圖用-->
+    <!-- Include jquery mark ( for highlighting text )-->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/mark.js/8.6.0/jquery.mark.min.js"></script>
+    <script type="text/javascript"
+        src="https://cdn.jsdelivr.net/datatables.mark.js/2.0.0/datatables.mark.min.js"></script>
+    <!-- semanticUI -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
+    <link rel="stylesheet" type="text/css"
+        href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css">
+    <!-- tabs -->
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <!--<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>-->
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('.ui.dropdown').dropdown({ on: 'hover' });
+        });
+
+        function countSecond() {
+
+            if (x < 1000) {
+                x = x + 1
+                //console.log(x);
+                //$("#second").html(x); 
+                $("#second2").html(x);
+                count_second = setTimeout("countSecond()", 1000)
+            }
+        }
+        //tabview
+        $(function () {
+
+            $("#tabs").tabs();
+        });
+    </script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $.ajaxSetup({
+                data: {
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                },
+            });
+            //全域變數，用來存第一次的資料
+            var accession_for_Jaccard;
+            var table_data;
+            var obj = "";
+            var no_box_data;
+            var href = window.location.href;//https://cosbi.ee.ncku.edu.tw/orchidbase6/pfam/?type=all_species
+            var Type = href.split("=")[1];//all_species
+            var select_tool;
+            var select_enter;
+            var select_id_data;
+            $("#library").val(Type);
+            $('#submit').click(function () {
+                //console.log("ok");
+                select_enter = "sequence";
+                var inp = $('#inp').val();
+                if (inp == "") {
+                    alert('Please enter the sequence');
+                    //$("#Query_gene").hide();
+                    $("#download").hide();
+                }
+                else {
+                    var result = validateFasta(inp);
+                    //console.log(result);//trur or false
+                    if (result.correct == false) {
+                        alert('Please enter the correct fasta format');
+                    }
+                    else {
+                        inp = result.data;
+                        console.log(inp);
+                        x = -1;
+                        countSecond();
+                        $.blockUI({
+                            css: {
+                                border: 'none',
+                                padding: '15px',
+                                backgroundColor: '#000',
+                                '-webkit-border-radius': '10px',
+                                '-moz-border-radius': '10px',
+                                opacity: .5,
+                                color: '#fff',
+                                //message:"Loding...\t Running time:"+"x"+"second(s)"
+                            },
+                            message: "Running time:<b id='second2' style='color: white;'>0</b>  second(s)",
+                        });
+
+                        if ($("#select_Pfam").prop("checked")) {
+                            //進入pfam的情況
+                            //console.log("pfam");
+                            select_tool = "pfam";
+
+                            $("#Print").empty();
+                            $.ajax({
+                                url: '/orchidbase6/pfam/ajax_hmmer/',
+                                data: { "inp": inp },  // 傳到後端的資料
+                                type: 'POST',
+                                dataType: 'json',
+                                //timeout:180000,
+                                //processData:false,
+                                //contentType:false,
+                                success: function (data) { //後端傳來的jsonresponse
+                                    //console.log(data);
+                                    clearTimeout(count_second);
+                                    console.log("ok");
+                                    accession_for_Jaccard = data.accession;
+                                    no_box_data = data;
+                                    $("#box2").show();
+                                    $("#mydiv").show();
+                                    $("#mydiv4").hide();
+
+
+                                    $('#mydiv').empty();
+                                    $('#mydiv').html("<table id='myDataTable'  class='cell-border table-striped'></table>");
+                                    create_table_sequence_pfam_jaccard_test(data.header, data.body);
+                                    //關閉ordering功能  
+                                    $('#myDataTable').DataTable({
+                                        "destroy": true,
+                                        "ordering": false,
+                                    })
+
+                                    $.unblockUI(); //Loading...跑完後關掉
+                                },
+                                error: function () {
+                                    alert('Something error')
+                                    $.unblockUI(); //Loading...跑完後關掉
+                                },
+
+                            });
+                        }
+                        //進入interproscan的情況
+                        else {
+                            select_tool = "interprosan";
+                            //console.log("interpro");
+                            /*
+                            // 執行函數
+                            x = 0;
+                            countSecond();  */
+                            $.ajax({
+                                url: '/orchidbase6/pfam/ajax_interproscan/',
+                                data: { "inp": inp },  // 傳到後端的資料
+                                type: 'POST',
+                                dataType: 'json',
+                                //processData:false,
+                                //contentType:false,
+                                success: function (data) { //後端傳來的jsonresponse
+                                    //console.log(data);
+                                    clearTimeout(count_second);
+                                    console.log("ok2");
+                                    accession_for_Jaccard = data.accession
+                                    no_box_data = data;
+                                    $("#box2").show();
+                                    $("#mydiv4").show();
+                                    $("#mydiv").hide();
+
+
+                                    $('#mydiv4').empty();
+                                    $('#mydiv4').html("<table id='myDataTable4'  class='cell-border table-striped'></table>");
+                                    create_table_sequence_interpro_jaccard(data.header, data.body);
+                                    //關閉ordering功能  
+                                    $('#myDataTable4').DataTable({
+                                        "destroy": true,
+                                        "ordering": false,
+                                    })
+
+                                    $("#InterPro_accession").click(function () {
+                                        console.log("ok");
+                                        if ($("#InterPro_accession").prop("checked"))//如果全選按鈕有被選擇的話（被選擇是true）
+                                        {
+                                            console.log("checkbox is checked");
+                                            //$("input[name='interpro_accession_body']").prop("checked",true);//把所有的核取方框的property都變成勾選
+                                            $('#myDataTable4').DataTable()
+                                                .column(7)
+                                                .nodes()
+                                                .to$()
+                                                .find('input[name=interpro_accession_body]')
+                                                .prop('checked', this.checked);//true
+                                        }
+                                        else {
+                                            //$("input[name='interpro_accession_body']").prop("checked",false);//把所有的核取方框的property都取消勾選
+                                            $('#myDataTable4').DataTable()
+                                                .column(7)
+                                                .nodes()
+                                                .to$()
+                                                .find('input[name=interpro_accession_body]')
+                                                .prop('checked', false);//true
+                                        }
+                                    });
+
+                                    $.unblockUI(); //Loading...跑完後關掉
+                                },
+                                error: function () {
+                                    alert('Something error')
+                                    $.unblockUI(); //Loading...跑完後關掉
+                                },
+
+                            });
+
+                        }
+                    }
+                }
+            });
+
+            $("#Similarity").change(function () {
+                //進入pfam的情況
+                if (select_tool == "pfam") {
+                    //sequence搜尋
+                    if (select_enter == "sequence") {
+                        console.log("sequence");
+                        if ($("#Similarity").val() == "Jaccard") {
+                            $('#mydiv').empty();
+                            $('#mydiv').html("<table id='myDataTable'  class='cell-border table-striped'></table>");
+                            create_table_sequence_pfam_jaccard(no_box_data.header, no_box_data.body);
+                            //關閉ordering功能  
+                            $('#myDataTable').DataTable({
+                                "destroy": true,
+                                "ordering": false,
+                            })
+                        }
+                        else {
+                            $('#mydiv').empty();
+                            $('#mydiv').html("<table id='myDataTable'  class='cell-border table-striped'></table>");
+                            create_table_sequence_pfam_intersection(no_box_data.header, no_box_data.body);
+                            //關閉ordering功能  
+                            $('#myDataTable').DataTable({
+                                "destroy": true,
+                                "ordering": false,
+                            })
+
+                            $('#accession').click(function () {
+                                //console.log("ok");
+                                if ($('#accession').prop("checked"))//如果全選按鈕有被選擇的話（被選擇是true）
+                                {
+                                    //console.log("checkbox is checked");
+                                    //$("input[name='accession_body']").prop("checked",true);//把所有的核取方框的property都變成勾選
+                                    $('#myDataTable').DataTable()
+                                        .column(0)
+                                        .nodes()
+                                        .to$()
+                                        .find('input[name=accession_body]')
+                                        .prop('checked', this.checked);//true
+                                }
+                                else {
+                                    //$("input[name='accession_body']").prop("checked",false);//把所有的核取方框的property都取消勾選
+                                    $('#myDataTable').DataTable()
+                                        .column(0)
+                                        .nodes()
+                                        .to$()
+                                        .find('input[name=accession_body]')
+                                        .prop('checked', false);//true
+                                }
+                            });
+                        }
+                    }
+                    //keyword搜尋或ID搜尋
+                    else {
+                        if ($("#Similarity").val() == "Jaccard") {
+                            $('#mydiv').empty();
+                            $('#mydiv').html("<table id='myDataTable'  class='cell-border table-striped'></table>");
+                            create_table_keyword_pfam_jaccard(no_box_data.header, no_box_data.body);
+                            //關閉ordering功能  
+                            $('#myDataTable').DataTable({
+                                "destroy": true,
+                                "ordering": false,
+                            })
+                        }
+                        else {
+                            $('#mydiv').empty();
+                            $('#mydiv').html("<table id='myDataTable'  class='cell-border table-striped'></table>");
+                            create_table_keyword_pfam_intersection(no_box_data.header, no_box_data.body);
+                            //關閉ordering功能  
+                            $('#myDataTable').DataTable({
+                                "destroy": true,
+                                "ordering": false,
+                            })
+
+                            $('#Pfam_ID').click(function () {
+                                //console.log("ok");
+                                if ($('#Pfam_ID').prop("checked"))//如果全選按鈕有被選擇的話（被選擇是true）
+                                {
+                                    //console.log("checkbox is checked");
+                                    //$("input[name='accession_body']").prop("checked",true);//把所有的核取方框的property都變成勾選
+                                    $('#myDataTable').DataTable()
+                                        .column(0)
+                                        .nodes()
+                                        .to$()
+                                        .find('input[name=accession_body]')
+                                        .prop('checked', this.checked);//true
+                                }
+                                else {
+                                    //$("input[name='accession_body']").prop("checked",false);//把所有的核取方框的property都取消勾選
+                                    $('#myDataTable').DataTable()
+                                        .column(0)
+                                        .nodes()
+                                        .to$()
+                                        .find('input[name=accession_body]')
+                                        .prop('checked', false);//true
+                                }
+                            });
+                        }
+
+                    }
+                }
+                //進入interproscan的情況
+                else {
+                    //sequence搜尋
+                    if (select_enter == "sequence") {
+                        if ($("#Similarity").val() == "Jaccard") {
+                            $('#mydiv4').empty();
+                            $('#mydiv4').html("<table id='myDataTable4'  class='cell-border table-striped'></table>");
+                            create_table_sequence_interpro_jaccard(no_box_data.header, no_box_data.body);
+                            //關閉ordering功能  
+                            $('#myDataTable4').DataTable({
+                                "destroy": true,
+                                "ordering": false,
+                            })
+                        }
+                        else {
+                            $('#mydiv4').empty();
+                            $('#mydiv4').html("<table id='myDataTable4'  class='cell-border table-striped'></table>");
+                            create_table_sequence_interpro_intersection(no_box_data.header, no_box_data.body);
+                            //關閉ordering功能  
+                            $('#myDataTable4').DataTable({
+                                "destroy": true,
+                                "ordering": false,
+                            })
+
+                            $('#InterPro_accession').click(function () {
+                                //console.log("ok");
+                                if ($('#InterPro_accession').prop("checked"))//如果全選按鈕有被選擇的話（被選擇是true）
+                                {
+                                    //console.log("checkbox is checked");
+                                    //$("input[name='accession_body']").prop("checked",true);//把所有的核取方框的property都變成勾選
+                                    $('#myDataTable4').DataTable()
+                                        .column(6)
+                                        .nodes()
+                                        .to$()
+                                        .find('input[name=interpro_accession_body]')
+                                        .prop('checked', this.checked);//true
+                                }
+                                else {
+                                    //$("input[name='accession_body']").prop("checked",false);//把所有的核取方框的property都取消勾選
+                                    $('#myDataTable4').DataTable()
+                                        .column(6)
+                                        .nodes()
+                                        .to$()
+                                        .find('input[name=interpro_accession_body]')
+                                        .prop('checked', false);//true
+                                }
+                            });
+                        }
+                    }
+                    //keyword搜尋
+                    else {
+                        if ($("#Similarity").val() == "Jaccard") {
+                            $('#mydiv4').empty();
+                            $('#mydiv4').html("<table id='myDataTable4'  class='cell-border table-striped'></table>");
+                            create_table_keyword_interpro_jaccard(no_box_data.header, no_box_data.body);
+                            //關閉ordering功能  
+                            $('#myDataTable4').DataTable({
+                                "destroy": true,
+                                "ordering": false,
+                            })
+                        }
+                        else {
+                            console.log("interpro_keyword_create_table_keyword_interpro_intersection");
+                            $('#mydiv4').empty();
+                            $('#mydiv4').html("<table id='myDataTable4'  class='cell-border table-striped'></table>");
+                            create_table_keyword_interpro_intersection(no_box_data.header, no_box_data.body);
+                            //關閉ordering功能  
+                            $('#myDataTable4').DataTable({
+                                "destroy": true,
+                                "ordering": false,
+                            })
+
+                            $('#Interpro_ID').click(function () {
+                                //console.log("ok");
+                                if ($('#Interpro_ID').prop("checked"))//如果全選按鈕有被選擇的話（被選擇是true）
+                                {
+                                    //console.log("checkbox is checked");
+                                    //$("input[name='accession_body']").prop("checked",true);//把所有的核取方框的property都變成勾選
+                                    $('#myDataTable4').DataTable()
+                                        .column(0)
+                                        .nodes()
+                                        .to$()
+                                        .find('input[name=interpro_accession_body]')
+                                        .prop('checked', this.checked);//true
+                                }
+                                else {
+                                    //$("input[name='accession_body']").prop("checked",false);//把所有的核取方框的property都取消勾選
+                                    $('#myDataTable4').DataTable()
+                                        .column(0)
+                                        .nodes()
+                                        .to$()
+                                        .find('input[name=interpro_accession_body]')
+                                        .prop('checked', false);//true
+                                }
+                            });
+                        }
+                    }
+                }
+            });
+
+            $("#show_similar_gene").click(function () {
+                $.blockUI({
+                    css: {
+                        border: 'none',
+                        padding: '15px',
+                        backgroundColor: '#000',
+                        '-webkit-border-radius': '10px',
+                        '-moz-border-radius': '10px',
+                        opacity: .5,
+                        color: '#fff',
+                        message: "Loding..."
+                    }
+                });
+
+                var library = $("#library").val();
+                var numbers = $("#select_cutoff_similar_value").val();
+                var Similarity = $("#Similarity").val();
+                var arr = [];
+                console.log(select_tool);
+                //進入pfam的結果
+                if (select_tool == "pfam") {
+                    console.log("pfam");
+                    /*$("[name=accession_body]:checkbox:checked").each(function(){
+                        arr.push($(this).val());
+                    });*/
+                    if (select_enter == "sequence") {
+                        $('#myDataTable').DataTable().column(0).nodes().to$().find('input[type="checkbox"]:checked').each(function () {
+                            //console.log($(this).val());
+                            arr.push($(this).val());
+                        })
+                    }
+
+                    if (select_enter == "keyword") {
+                        $('#myDataTable').DataTable().column(0).nodes().to$().find('input[type="checkbox"]:checked').each(function () {
+                            //console.log($(this).val());
+                            arr.push($(this).val());
+                        })
+                    }
+
+
+                    var arr_string = JSON.stringify(arr);
+                    console.log(arr_string);
+                    console.log(accession_for_Jaccard);
+                    if ($("#Similarity").val() != "Jaccard" && arr.length == 0) {
+                        alert("please check the accession checkbox first");
+                        $.unblockUI(); //Loading...跑完後關掉
+                    }
+                    else {
+                        $.ajax({
+                            url: '/orchidbase6/pfam/ajax_similar_gene/',
+                            data: { "Jaccard_arr": JSON.stringify(accession_for_Jaccard), "accession_arr": arr_string, "library": library, "numbers": numbers, "Similarity": Similarity },  // 傳到後端的資料
+                            type: 'POST',
+                            dataType: 'json',
+                            //processData:false,
+                            //contentType:false,
+                            success: function (data) { //後端傳來的jsonresponse
+
+                                select_id_data = data;
+                                console.log(data);
+                                $("#box3").show();
+                                $('#mydiv2').empty();
+                                $('#mydiv2').html("<table id='myDataTable2'  class='cell-border table-striped'></table>");
+                                create_table_library_gene(data.Jaccard_header, data.Jaccard_body);
+                                //關閉ordering功能  
+                                $('#myDataTable2').DataTable({
+                                    "destroy": true,
+                                    "ordering": false,
+                                    "scrollX": true,
+                                    /*"rowCallback": function( row, data, index ) { 
+                                        if (data[1]=="Peq001283"){
+                                            $("td:eq(0)",row).css('background-color', 'pink');
+                                        }
+                                    }*/
+                                })
+
+                                $('#checkall').click(function () {
+                                    //console.log("ok");
+                                    if ($('#checkall').prop("checked"))//如果全選按鈕有被選擇的話（被選擇是true）
+                                    {
+                                        //console.log("checkbox is checked");
+                                        //$("input[name='ID']").prop("checked",true);//把所有的核取方框的property都變成勾選
+                                        $('#myDataTable2').DataTable()
+                                            .column(0)
+                                            .nodes()
+                                            .to$()
+                                            .find('input[name=ID]')
+                                            .prop('checked', this.checked);//true
+                                    }
+                                    else {
+                                        //$("input[name='ID']").prop("checked",false);//把所有的核取方框的property都取消勾選
+                                        $('#myDataTable2').DataTable()
+                                            .column(0)
+                                            .nodes()
+                                            .to$()
+                                            .find('input[name=ID]')
+                                            .prop('checked', false);//false
+                                    }
+                                });
+
+                                $.unblockUI(); //Loading...跑完後關掉
+                            },
+                            error: function () {
+                                alert('Something error');
+                                $.unblockUI(); //Loading...跑完後關掉
+                            },
+
+                        });
+                    }
+
+                }
+                //進入interproscan的結果
+                else {
+                    console.log("interpro");
+                    /* $("[name=interpro_accession_body]:checkbox:checked").each(function(){
+                         arr.push($(this).val());
+                     });*/
+                    if (select_enter == "sequence") {
+                        $('#myDataTable4').DataTable().column(6).nodes().to$().find('input[type="checkbox"]:checked').each(function () {
+                            //console.log($(this).val());
+                            arr.push($(this).val());
+                        })
+                    }
+                    if (select_enter == "keyword") {
+                        $('#myDataTable4').DataTable().column(0).nodes().to$().find('input[type="checkbox"]:checked').each(function () {
+                            //console.log($(this).val());
+                            arr.push($(this).val());
+                        })
+                    }
+                    var arr_string = JSON.stringify(arr);
+                    console.log(accession_for_Jaccard);
+                    console.log(arr_string);
+                    console.log(library);
+                    console.log(numbers);
+                    console.log(Similarity);
+
+                    if ($("#Similarity").val() != "Jaccard" && arr.length == 0) {
+                        alert("please check the accession checkbox first");
+                        $.unblockUI(); //Loading...跑完後關掉
+                    }
+                    else {
+                        $.ajax({
+                            url: '/orchidbase6/pfam/ajax_similar_gene_interproscan/',
+                            data: { "Jaccard_arr": JSON.stringify(accession_for_Jaccard), "accession_arr": arr_string, "library": library, "numbers": numbers, "Similarity": Similarity },  // 傳到後端的資料
+                            type: 'POST',
+                            dataType: 'json',
+                            //processData:false,
+                            //contentType:false,
+                            success: function (data) { //後端傳來的jsonresponse
+                                console.log(data);
+                                select_id_data = data;
+                                $("#box3").show();
+                                //$("#ShowExpressionProfile").show();
+
+                                $('#mydiv2').empty();
+                                $('#mydiv2').html("<table id='myDataTable2'  class='cell-border table-striped'></table>");
+                                create_table_library_gene(data.Jaccard_header, data.Jaccard_body);
+                                //關閉ordering功能  
+                                $('#myDataTable2').DataTable({
+                                    "destroy": true,
+                                    "ordering": false,
+                                    "scrollX": true,
+                                })
+
+                                $('#checkall').click(function () {
+                                    //console.log("ok");
+                                    if ($('#checkall').prop("checked"))//如果全選按鈕有被選擇的話（被選擇是true）
+                                    {
+                                        //console.log("checkbox is checked");
+                                        //$("input[name='ID']").prop("checked",true);//把所有的核取方框的property都變成勾選
+                                        $('#myDataTable2').DataTable()
+                                            .column(0)
+                                            .nodes()
+                                            .to$()
+                                            .find('input[name=ID]')
+                                            .prop('checked', this.checked);//true
+                                    }
+                                    else {
+                                        //$("input[name='ID']").prop("checked",false);//把所有的核取方框的property都取消勾選
+                                        $('#myDataTable2').DataTable()
+                                            .column(0)
+                                            .nodes()
+                                            .to$()
+                                            .find('input[name=ID]')
+                                            .prop('checked', false);//false
+                                    }
+                                });
+
+                                $.unblockUI(); //Loading...跑完後關掉
+                            },
+                            error: function () {
+                                alert('Something error')
+                                $.unblockUI(); //Loading...跑完後關掉
+                            },
+
+                        });
+                    }
+
+                }
+
+
+
+            })
+
+            $("#submit2").click(function () {
+                /*$.blockUI({ css: {
+                    border: 'none',
+                    padding: '15px',
+                    backgroundColor: '#000',
+                    '-webkit-border-radius': '10px',
+                    '-moz-border-radius': '10px',
+                    opacity: .5,
+                    color: '#fff',
+                    message:"Loding..."
+                } });*/
+
+                //var library = $("#library2").val();
+                //var numbers = $("#select_cutoff_similar_value2").val();
+                //var Similarity = $("#Similarity2").val();
+                select_enter = "keyword";
+                var query_ID = $("#query_ID").val();
+
+                //進入pfam的結果
+                if ($("#select_Pfam2").prop("checked")) {
+                    select_tool = "pfam";
+                    console.log("pfam2");
+
+                    if (query_ID == "") {
+                        alert("please enter query ID");
+                    }
+                    else {
+                        $.ajax({
+                            url: '/orchidbase6/pfam/query_ID_Pfam/',
+                            data: { "query_ID": query_ID },  // 傳到後端的資料
+                            type: 'POST',
+                            dataType: 'json',
+                            //processData:false,
+                            //contentType:false,
+                            success: function (data) { //後端傳來的jsonresponse
+                                console.log(data);
+                                //$("#box2").show();
+                                //$("#box3").show();
+                                //$("#back_div2").show();
+                                //$("#box1").hide();
+                                accession_for_Jaccard = data.accession;
+                                no_box_data = data;
+                                $("#box2").show();
+                                $('#mydiv').show();
+                                $('#mydiv4').hide();
+                                //$("#box3").show();
+                                //$("#back_div2").show();
+                                //$("#box1").hide();
+
+                                $('#mydiv').empty();
+                                $('#mydiv').html("<table id='myDataTable'  class='cell-border table-striped'></table>");
+                                create_table_keyword_pfam_jaccard(data.header, data.body);
+                                //關閉ordering功能  
+                                $('#myDataTable').DataTable({
+                                    "destroy": true,
+                                    "ordering": false,
+                                })
+
+                                //$.unblockUI(); //Loading...跑完後關掉
+                            },
+                            error: function () {
+                                alert('Something error');
+                                //$.unblockUI(); //Loading...跑完後關掉
+                            },
+
+                        });
+                    }
+
+                }
+                //進入interproscan的結果
+                else {
+                    console.log("interpro");
+                    select_tool = "interproscan";
+
+
+                    if (query_ID == "") {
+                        alert("please enter query ID");
+                    }
+                    else {
+                        $.ajax({
+                            url: '/orchidbase6/pfam/query_ID_interproscan/',
+                            data: { "query_ID": query_ID },  // 傳到後端的資料
+                            type: 'POST',
+                            dataType: 'json',
+                            //processData:false,
+                            //contentType:false,
+                            success: function (data) { //後端傳來的jsonresponse
+                                accession_for_Jaccard = data.accession;
+                                no_box_data = data;
+                                $("#box2").show();
+                                $('#mydiv').hide();
+                                $('#mydiv4').show();
+                                //$("#box3").show();
+                                //$("#back_div2").show();
+                                //$("#box1").hide();
+
+                                $('#mydiv4').empty();
+                                $('#mydiv4').html("<table id='myDataTable4'  class='cell-border table-striped'></table>");
+
+                                create_table_keyword_interpro_jaccard(data.header, data.body);
+
+                                //關閉ordering功能  
+                                $('#myDataTable4').DataTable({
+                                    "destroy": true,
+                                    "ordering": false,
+                                })
+
+                                $.unblockUI(); //Loading...跑完後關掉
+                            },
+                            error: function () {
+                                alert('Something error')
+                                $.unblockUI(); //Loading...跑完後關掉
+                            },
+
+                        });
+                    }
+
+                }
+
+
+
+            })
+
+            $("#submit3").click(function () {
+                /*$.blockUI({ css: {
+                    border: 'none',
+                    padding: '15px',
+                    backgroundColor: '#000',
+                    '-webkit-border-radius': '10px',
+                    '-moz-border-radius': '10px',
+                    opacity: .5,
+                    color: '#fff',
+                    message:"Loding..."
+                } });*/
+
+                select_enter = "keyword";
+                var query_keyword = $("#query_keyword").val();
+
+                //進入pfam的結果
+                if ($("#select_Pfam3").prop("checked")) {
+                    select_tool = "pfam";
+                    console.log("pfam3");
+                    //console.log(select_tool);
+                    if (query_ID == "") {
+                        alert("please enter query Keyword(s)");
+                    }
+                    else {
+                        $.ajax({
+                            url: '/orchidbase6/pfam/query_keyword_Pfam/',
+                            data: { "query_keyword": query_keyword },  // 傳到後端的資料
+                            type: 'POST',
+                            dataType: 'json',
+                            //processData:false,
+                            //contentType:false,
+                            success: function (data) { //後端傳來的jsonresponse
+                                console.log(data);
+                                //$("#box2").show();
+                                accession_for_Jaccard = data.accession;
+                                no_box_data = data;
+                                $("#box2").show();
+                                $('#mydiv').show();
+                                $('#mydiv4').hide();
+                                //$("#box3").show();
+                                //$("#back_div2").show();
+                                //$("#box1").hide();
+
+                                $('#mydiv').empty();
+                                $('#mydiv').html("<table id='myDataTable'  class='cell-border table-striped'></table>");
+                                create_table_keyword_pfam_jaccard(data.header, data.body);
+                                //關閉ordering功能  
+                                $('#myDataTable').DataTable({
+                                    "destroy": true,
+                                    "ordering": false,
+                                    mark: true,//https://jsfiddle.net/julmot/buh9h2r8/
+                                    "search": {//https://stackoverflow.com/questions/48316191/jquery-datatables-set-default-search-value-for-a-column-when-initializing-a-tab
+                                        "search": query_keyword
+                                    }
+                                })
+
+
+                                //$.unblockUI(); //Loading...跑完後關掉
+                            },
+                            error: function () {
+                                alert('Something error');
+                                //$.unblockUI(); //Loading...跑完後關掉
+                            },
+
+                        });
+                    }
+
+                }
+                //進入interproscan的結果
+                else {
+                    console.log("interpro3");
+                    select_tool = "interproscan";
+                    //console.log(select_tool);
+
+                    if (query_ID == "") {
+                        alert("please enter query Keyword(s)");
+                    }
+                    else {
+                        $.ajax({
+                            url: '/orchidbase6/pfam/query_keyword_interproscan/',
+                            data: { "query_keyword": query_keyword },  // 傳到後端的資料
+                            type: 'POST',
+                            dataType: 'json',
+                            //processData:false,
+                            //contentType:false,
+                            success: function (data) { //後端傳來的jsonresponse
+                                console.log(data);
+                                //$("#box2").show();
+                                accession_for_Jaccard = data.accession;
+                                no_box_data = data;
+                                $("#box2").show();
+                                $('#mydiv').hide();
+                                $('#mydiv4').show();
+                                //$("#box3").show();
+                                //$("#back_div2").show();
+                                //$("#box1").hide();
+
+                                $('#mydiv4').empty();
+                                $('#mydiv4').html("<table id='myDataTable4'  class='cell-border table-striped'></table>");
+
+                                create_table_keyword_interpro_jaccard(data.header, data.body);
+
+                                //關閉ordering功能  
+                                $('#myDataTable4').DataTable({
+                                    "destroy": true,
+                                    "ordering": false,
+                                    mark: true,//https://jsfiddle.net/julmot/buh9h2r8/
+                                    "search": {//https://stackoverflow.com/questions/48316191/jquery-datatables-set-default-search-value-for-a-column-when-initializing-a-tab
+                                        "search": query_keyword
+                                    }
+                                })
+
+                                //$.unblockUI(); //Loading...跑完後關掉
+                            },
+                            error: function () {
+                                alert('Something error')
+                                //$.unblockUI(); //Loading...跑完後關掉
+                            },
+
+                        });
+                    }
+
+                }
+
+
+
+            })
+
+            $("#ShowExpressionProfile").click(function () {
+                var arr = [];
+                /*此方法只會抓datatable的第一頁checkbox
+                $("[name=ID]:checkbox:checked").each(function(){
+                    arr.push($(this).val());
+                });*/
+                $('#myDataTable2').DataTable().column(0).nodes().to$().find('input[type="checkbox"]:checked').each(function () {
+                    //console.log($(this).val());
+                    arr.push($(this).val());
+                })
+
+
+                var arr_string = JSON.stringify(arr);
+
+                var type = "";
+                if (arr == null || arr.length == null || arr.length == 0) {
+                    alert("please check the Gene ID checkbox first");
+                }
+                else {
+                    $.blockUI({
+                        css: {
+                            border: 'none',
+                            padding: '15px',
+                            backgroundColor: '#000',
+                            '-webkit-border-radius': '10px',
+                            '-moz-border-radius': '10px',
+                            opacity: .5,
+                            color: '#fff',
+                            message: "Loding..."
+                        }
+                    });
+                    //setTimeout($.unblockUI, 2000);//自行設定等待時間
+                    /*
+                    setTimeout(function (){
+                      $("#${id}_table").setGridWidth($("#${id}_table_container").width(),true) // something that take some time.
+                      $.unblockUI();      
+                     }, 0);*/
+
+                    var select_data_type = $("#select_data_type").val();
+                    console.log(arr_string);
+                    console.log(select_data_type);
+                    $.ajax({
+                        url: '/orchidbase6/pfam/GeneExpressionProfile/',
+                        data: { 'data': arr_string, 'select_data_type': select_data_type },
+                        type: 'POST',
+                        dataType: 'json',
+                        success: function (data) {
+                            table_data = data;
+                            console.log(data);
+                            $("#box4").show();
+                            $('#mydiv5').empty();
+                            console.log(select_id_data);
+                            $('#mydiv5').html("<table id='myDataTable5'  class='table table-hover dt-responsive order-columnmemberList tblFormat cell-border table-striped' ></table>");
+                            selected_ID_table(data[3], select_id_data.Jaccard_header, select_id_data.Jaccard_body);
+
+                            $("#expression_button").show();
+
+                            //plot_table
+                            $('#mydiv3').empty();
+                            $('#mydiv3').html("<table id='myDataTable3'  class='table table-hover dt-responsive order-columnmemberList tblFormat cell-border table-striped' ></table>");
+                            create_expression_table(data[2], data[3], data[4]);
+                            //關閉ordering功能  
+                            $('#myDataTable3').DataTable({
+                                "destroy": true,
+                                "ordering": false,
+                                "scrollX": true,
+                            })
+
+                            $('#checkall2').click(function () {
+                                //console.log("ok");
+                                if ($('#checkall2').prop("checked"))//如果全選按鈕有被選擇的話（被選擇是true）
+                                {
+                                    //console.log("checkbox is checked");
+                                    //$("input[name='ID2']").prop("checked",true);//把所有的核取方框的property都變成勾選
+                                    $('#myDataTable3').DataTable()
+                                        .column(0)
+                                        .nodes()
+                                        .to$()
+                                        .find('input[name=ID2]')
+                                        .prop('checked', this.checked);//true
+                                }
+                                else {
+                                    //$("input[name='ID2']").prop("checked",false);//把所有的核取方框的property都取消勾選
+                                    $('#myDataTable3').DataTable()
+                                        .column(0)
+                                        .nodes()
+                                        .to$()
+                                        .find('input[name=ID2]')
+                                        .prop('checked', false);
+                                }
+                            });
+                            //plotheatmap
+                            plotheatmap(data[2], data[3], data[4]);
+
+                            //plotcluster
+                            if (data[5] == "no picture") {
+                                document.getElementById("img").src = "";
+                                $("#img_table").hide();
+                                $("#cluster_text").html("<b>Because the Gene expression data have some null value,the Cluster chart can't be displayed!</b>");
+                            }
+                            else {
+                                document.getElementById("img").src = "../../../t50504_static/img/heatmap/" + data[5] + ".png" //絕對路徑寫法，因為寫相對路徑會出錯
+                                $("#img_table").show();
+
+                            }
+
+                            //plotpca
+                            if (data[6] == "no pca") {
+                                $("#pca").empty();
+                                $("#pca").html("<b>Because the Gene expression data have some null value or the Gene expression data only have one column,tht PCA chart can't be displayed!</b>");
+                            }
+                            else {
+                                plotpca(data[6], data[3]);
+                            }
+                            //plotbar
+                            plotbar(data[2], data[3], data[4]);
+
+                            $.unblockUI(); //跑完後關掉
+                        },
+                        error: function () {
+                            console.log("error");
+                            $.unblockUI(); //Loading...跑完後關掉
+                        },
+                    });
+                };
+            })
+
+            $('#select_data_type').change(function () {
+                $.blockUI({
+                    css: {
+                        border: 'none',
+                        padding: '15px',
+                        backgroundColor: '#000',
+                        '-webkit-border-radius': '10px',
+                        '-moz-border-radius': '10px',
+                        opacity: .5,
+                        color: '#fff',
+                        message: "Loding..."
+                    }
+                });
+
+                var arr = [];
+                /*$("[name=ID]:checkbox:checked").each(function(){
+                arr.push($(this).val());
+                });*/
+                $('#myDataTable2').DataTable().column(0).nodes().to$().find('input[type="checkbox"]:checked').each(function () {
+                    //console.log($(this).val());
+                    arr.push($(this).val());
+                })
+                var arr_string = JSON.stringify(arr);
+                //console.log(arr_string);
+                //console.log(typeof(arr_string));//string
+                var type = "Phalaenopsis";
+                var select_data_type = $("#select_data_type").val();
+
+                $.ajax({
+                    url: '/orchidbase6/pfam/GeneExpressionProfile/',
+                    data: { 'data': arr_string, 'type': type, 'select_data_type': select_data_type },
+                    type: 'POST',
+                    dataType: 'json',
+                    success: function (data) {
+                        table_data = data;
+                        //plot_table
+                        $('#mydiv3').empty();
+                        $('#mydiv3').html("<table id='myDataTable3'  class='cell-border table-striped'></table>");
+                        create_expression_table(data[2], data[3], data[4]);
+                        //關閉ordering功能  
+                        $('#myDataTable3').DataTable({
+                            "destroy": true,
+                            "ordering": false,
+                            "scrollX": true,
+                        })
+
+                        $('#checkall2').click(function () {
+                            console.log("ok");
+                            if ($('#checkall2').prop("checked"))//如果全選按鈕有被選擇的話（被選擇是true）
+                            {
+                                //console.log("checkbox is checked");
+                                //$("input[name='ID2']").prop("checked",true);//把所有的核取方框的property都變成勾選
+                                $('#myDataTable3').DataTable()
+                                    .column(0)
+                                    .nodes()
+                                    .to$()
+                                    .find('input[name=ID2]')
+                                    .prop('checked', this.checked);//true
+                            }
+                            else {
+                                //$("input[name='ID2']").prop("checked",false);//把所有的核取方框的property都取消勾選
+                                $('#myDataTable3').DataTable()
+                                    .column(0)
+                                    .nodes()
+                                    .to$()
+                                    .find('input[name=ID2]')
+                                    .prop('checked', false);
+                            }
+                        });
+                        //plotheatmap
+                        plotheatmap(data[2], data[3], data[4]);
+
+                        //plotcluster
+                        if (data[5] == "no picture") {
+                            document.getElementById("img").src = "";
+                            $("#img_table").hide();
+                            $("#cluster_text").html("<b>Because the Gene expression data have some null value,the Cluster chart can't be displayed!</b>");
+                        }
+                        else {
+                            document.getElementById("img").src = "../../../t50504_static/img/heatmap/" + data[5] + ".png" //絕對路徑寫法，因為寫相對路徑會出錯
+                            $("#img_table").show();
+                            //document.getElementById("img").src="{% static 'img/heatmap/OktRM.png' %}"
+                        }
+
+                        //plotpca
+                        if (data[6] == "no pca") {
+                            $("#pca").empty();
+                            $("#pca").html("<b>Because the Gene expression data have some null value or the Gene expression data only have one column,tht PCA chart can't be displayed!</b>");
+                        }
+                        else {
+                            plotpca(data[6], data[3]);
+                        }
+                        //plotbar
+                        plotbar(data[2], data[3], data[4]);
+                        $.unblockUI(); //Loading...跑完後關掉
+                    },
+                    error: function () {
+                        console.log("error");
+                        $.unblockUI(); //Loading...跑完後關掉
+                    },
+                });
+            });
+
+
+            $("#select_table").click(function () {
+                //console.log("ok");
+                //不知道為什麼Ajax回傳的table_data會受下面的function或變數影響而改變，table_data資料中的"null"被改成了"-1"，所以這裡要在轉一次
+                for (var i = 0, l = table_data[4].length; i < l; i++) {
+                    for (var j = 0, k = table_data[4][i].length; j < k; j++) {
+                        if (table_data[4][i][j] == "-1") {
+                            table_data[4][i].splice(j, 1, 'null')
+                        }
+                    }
+                };
+
+                var checked_geneid2 = [];
+                var checked_header = [];
+                $("input[name = 'header']:checked").each(function (i) {
+                    var tmp = $(this).attr("id");
+                    checked_header.push(tmp);
+
+                });
+                /*此方法只會抓datatable的第一頁checkbox
+                $("input[name = 'ID2']:checked").each(function (j) {
+                    var tmp2 = $(this).attr("id");
+                    checked_geneid2.push(tmp2);
+                });*/
+                $('#myDataTable3').DataTable().column(0).nodes().to$().find('input[type="checkbox"]:checked').each(function () {
+                    //console.log($(this).val());
+                    checked_geneid2.push($(this).val());
+                })
+                //console.log(checked_geneid2);
+
+                if (checked_header.length == 0 || checked_geneid2.length == 0) {
+                    alert("Please check the gene ID checkbox and the organ checkbox!");
+                }
+                else {
+                    //防呆
+                    $("#select_table").attr("disabled", "false");
+                    $("#reset_table").removeAttr('disabled');
+                    //plot_table
+                    $('#mydiv3').empty();
+                    $('#mydiv3').html("<table id='myDataTable3'  class='cell-border table-striped'></table>");
+                    var obj;
+                    obj = select_table(table_data[2], table_data[3], table_data[4], checked_header, checked_geneid2);
+                    var select_header_string = JSON.stringify(obj.select_header);
+                    var select_geneid_string = JSON.stringify(obj.select_geneid);
+                    var select_body_string = JSON.stringify(obj.select_body);
+                    //console.log(select_header_string);
+                    //console.log(select_geneid_string);
+                    //console.log(select_body_string);
+                    $.ajax({
+                        url: '/orchidbase6/pfam/select_expression/',
+                        data: { 'select_header': select_header_string, 'select_geneid': select_geneid_string, 'select_body': select_body_string },
+                        type: 'POST',
+                        dataType: 'json',
+                        success: function (data) {
+                            //console.log(data);
+                            //plotheatmap
+                            plotheatmap(obj.select_header, obj.select_geneid, obj.select_body);
+                            //plotcluster
+                            if (data[5] == "no picture") {
+                                document.getElementById("img").src = "";
+                                $("#img_table").hide();
+                                $("#cluster_text").html("<b>Because the Gene expression data have some null value,the Cluster chart can't be displayed!</b>");
+                            }
+                            else {
+                                document.getElementById("img").src = "../../../t50504_static/img/heatmap/" + data[0] + ".png" //絕對路徑寫法，因為寫相對路徑會出錯
+                                $("#img_table").show();
+                                //document.getElementById("img").src="{% static 'img/heatmap/OktRM.png' %}"
+                            }
+
+                            //plotpca
+                            if (data[6] == "no pca") {
+                                $("#pca").empty();
+                                $("#pca").html("<b>Because the Gene expression data have some null value or the Gene expression data only have one column,tht PCA chart can't be displayed!</b>");
+                            }
+                            else {
+                                plotpca(data[1], obj.select_geneid);
+                            }
+
+                            //plotbar
+                            plotbar(obj.select_header, obj.select_geneid, obj.select_body);
+                        },
+                        error: function () {
+                            console.log("error");
+                        },
+                    })
+                }
+
+            })
+
+            $("#reset_table").click(function () {
+                //防呆
+                $("#reset_table").attr("disabled", "false");
+                $("#select_table").removeAttr('disabled');
+
+                $.blockUI({
+                    css: {
+                        border: 'none',
+                        padding: '15px',
+                        backgroundColor: '#000',
+                        '-webkit-border-radius': '10px',
+                        '-moz-border-radius': '10px',
+                        opacity: .5,
+                        color: '#fff',
+                        message: "Loding..."
+                    }
+                });
+
+                //不知道為什麼Ajax回傳的table_data會受下面的function或變數影響而改變，table_data資料中的"null"被改成了"-1"，所以這裡要在轉一次
+                for (var i = 0, l = table_data[4].length; i < l; i++) {
+                    for (var j = 0, k = table_data[4][i].length; j < k; j++) {
+                        if (table_data[4][i][j] == "-1") {
+                            table_data[4][i].splice(j, 1, 'null')
+                        }
+                    }
+                };
+                obj = ""
+                //plot_table
+                $('#mydiv3').empty();
+                $('#mydiv3').html("<table id='myDataTable3'  class='cell-border table-striped'></table>");
+                create_expression_table(table_data[2], table_data[3], table_data[4]);
+                //關閉ordering功能  
+                $('#myDataTable3').DataTable({
+                    "destroy": true,
+                    "ordering": false,
+                    "scrollX": true,
+                })
+
+                $('#checkall2').click(function () {
+                    //console.log("ok");
+                    if ($('#checkall2').prop("checked"))//如果全選按鈕有被選擇的話（被選擇是true）
+                    {
+                        //console.log("checkbox is checked");
+                        //$("input[name='ID']").prop("checked",true);//把所有的核取方框的property都變成勾選
+                        $('#myDataTable3').DataTable()
+                            .column(0)
+                            .nodes()
+                            .to$()
+                            .find('input[name=ID2]')
+                            .prop('checked', this.checked);//true
+                    }
+                    else {
+                        //$("input[name='ID']").prop("checked",false);//把所有的核取方框的property都取消勾選
+                        $('#myDataTable3').DataTable()
+                            .column(0)
+                            .nodes()
+                            .to$()
+                            .find('input[name=ID2]')
+                            .prop('checked', false);//true
+                    }
+                });
+                //plotheatmap
+                plotheatmap(table_data[2], table_data[3], table_data[4]);
+
+                //plotcluster
+                if (table_data[5] == "no picture") {
+                    document.getElementById("img").src = "";
+                    $("#img_table").hide();
+                    $("#cluster_text").html("<b>Because the Gene expression data have some null value,the Cluster chart can't be displayed!</b>");
+                }
+                else {
+                    document.getElementById("img").src = "../../../t50504_static/img/heatmap/" + table_data[5] + ".png" //絕對路徑寫法，因為寫相對路徑會出錯
+                    $("#img_table").show();
+                    //document.getElementById("img").src="{% static 'img/heatmap/OktRM.png' %}"
+                }
+
+                //plotpca
+                if (table_data[6] == "no pca") {
+                    $("#pca").empty();
+                    $("#pca").html("<b>Because the Gene expression data have some null value or the Gene expression data only have one column,tht PCA chart can't be displayed!</b>");
+                }
+                else {
+                    plotpca(table_data[6], table_data[3]);
+                }
+
+                //plotbar
+                plotbar(table_data[2], table_data[3], table_data[4]);
+
+                $.unblockUI(); //跑完後關掉            
+            })
+
+            $("#plot_cluster").click(function () {
+                if ($("#colorbar").val() == "default") {
+                    var vmin = "default";
+                    var vmax = "default";
+                    var figsize = $("#figsize").val();
+                    var row_cluster = $("#row_cluster").val();
+                    var cbar_pos = $("#cbar_pos").val();
+                    var cmap = $("#cmap").val();
+                    console.log(obj);
+                    if (obj == "") {
+                        var cluster_body = table_data[4];
+                        var cluster_head = table_data[2];
+                        var cluster_geneid = table_data[3];
+                    }
+                    else {
+                        var cluster_body = obj.select_body;
+                        var cluster_head = obj.select_header;
+                        var cluster_geneid = obj.select_geneid;
+                    }
+                    $.ajax({
+                        url: '/orchidbase6/pfam/select_plot_cluster/',
+                        data: { 'cluster_body': JSON.stringify(cluster_body), 'cluster_head': JSON.stringify(cluster_head), 'cluster_geneid': JSON.stringify(cluster_geneid), 'vmin': vmin, 'vmax': vmax, 'figsize': figsize, 'row_cluster': row_cluster, 'cbar_pos': cbar_pos, 'cmap': cmap },
+                        type: 'POST',
+                        dataType: 'json',
+                        success: function (data) {
+                            console.log(data);
+
+                            //plotcluster
+                            if (data.pic_name == "no picture") {
+                                document.getElementById("img").src = "";
+                            }
+                            else {
+                                document.getElementById("img").src = "../../../t50504_static/img/heatmap/" + data.pic_name + ".png" //絕對路徑寫法，因為寫相對路徑會出錯
+                                //document.getElementById("img").src="{% static 'img/heatmap/OktRM.png' %}"
+                            }
+                        },
+                        error: function () {
+                            console.log("error");
+                        },
+                    })
+                }
+                else {
+                    var vmin = $("#vmin").val();
+                    var vmax = $("#vmax").val();
+                    var figsize = $("#figsize").val();
+                    var row_cluster = $("#row_cluster").val();
+                    var cbar_pos = $("#cbar_pos").val();
+                    var cmap = $("#cmap").val();
+                    if (vmax == "" || !(/(^[1-9]\d*$)/.test(vmax))) {
+                        alert("Please query a positive number");
+                    }
+                    else {
+                        console.log(obj);
+                        if (obj == "") {
+                            var cluster_body = table_data[4];
+                            var cluster_head = table_data[2];
+                            var cluster_geneid = table_data[3];
+                        }
+                        else {
+                            var cluster_body = obj.select_body;
+                            var cluster_head = obj.select_header;
+                            var cluster_geneid = table_data[3];
+                        }
+                        $.ajax({
+                            url: '/orchidbase6/pfam/select_plot_cluster/',
+                            data: { 'cluster_body': JSON.stringify(cluster_body), 'cluster_head': JSON.stringify(cluster_head), 'cluster_geneid': JSON.stringify(cluster_geneid), 'vmin': vmin, 'vmax': vmax, 'figsize': figsize, 'row_cluster': row_cluster, 'cbar_pos': cbar_pos, 'cmap': cmap },
+                            type: 'POST',
+                            dataType: 'json',
+                            success: function (data) {
+                                console.log(data);
+
+                                //plotcluster
+                                if (data.pic_name == "no picture") {
+                                    document.getElementById("img").src = "";
+                                }
+                                else {
+                                    document.getElementById("img").src = "../../../t50504_static/img/heatmap/" + data.pic_name + ".png" //絕對路徑寫法，因為寫相對路徑會出錯
+                                    //document.getElementById("img").src="{% static 'img/heatmap/OktRM.png' %}"
+                                }
+                            },
+                            error: function () {
+                                console.log("error");
+                            },
+                        })
+                    }
+                }
+            })
+
+
+
+            $("#colorbar").change(function () {
+                if ($("#colorbar").val() == "default") {
+                    $("#vmin").attr("disabled", "false");
+                    $("#vmax").attr("disabled", "false");
+                }
+                else {
+                    $("#vmin").removeAttr('disabled');
+                    $("#vmax").removeAttr('disabled');
+                }
+            })
+
+
+            $("#example").click(function () {
+                document.getElementById('inp').value = '>Peq006585 locus=fragScaff_scaffold_1:5548:28500:+\nMLLDNRSLEPQLELEFAIHEAGVMHVLVTGGAGYIGSHATLRLLKDSYRVTIVDNLSRGNIGAVKTLQKLFPEPGRLQFIYADLGDAKVVDRIFAQNAFDAVMHFAAVAYVGESTLEPLRYYHNITSNTLVILEAMAKHGVRTLIYSSTCATYGEPEKMPITENTPQVPINPYGRAKKMAEDIILDFSKTTDMAIMILRYFNVIGSDPEGRLGEAPRPELRDQGRISGACFDAARGIIPGLKVRGADYPTHDGTCIRDYIDVTDLVDAHVKALTKARPKNVGIYNVGTGKGRSVKEFVESCKKATGVDIKVDYLERRPGDYAEVYSNPSKIKKELNWTARYTDLEQSLRTAWRWQKSHRNGYDTSISS';
+            });
+            $("#clear").click(function () {
+                document.getElementById('inp').value = '';
+            });
+
+            $("#example2").click(function () {
+                if ($("#select_Pfam2").prop("checked")) {
+                    document.getElementById('query_ID').value = 'PF16363.5, PF01370.21, PF01073.19, PF02719.15, PF04321.17, PF13460.6, PF07993.12';
+                }
+                else {
+                    document.getElementById('query_ID').value = 'IPR005886, IPR016040, IPR005886, IPR036291';
+                }
+            });
+            $("#clear2").click(function () {
+                document.getElementById('query_ID').value = '';
+            });
+
+            $("#example3").click(function () {
+                if ($("#select_Pfam3").prop("checked")) {
+                    document.getElementById('query_keyword').value = 'Sugar';
+                }
+                else {
+                    document.getElementById('query_keyword').value = 'Sugar';
+                }
+            });
+            $("#clear3").click(function () {
+                document.getElementById('query_keyword').value = '';
+            });
+
+            $("#select_Interproscan").click(function () {
+                $("input[name='search_tool']").val(['select_Interproscan']);
+            });
+
+            $("#select_Pfam").click(function () {
+                $("input[name='search_tool']").val(['select_Pfam']);
+            });
+
+            $("#similar_result").click(function () {
+                $("#mydiv5").show();
+                $("#mydiv3").hide();
+                $("#heatmap").hide();
+                $("#bar").hide();
+                $("#pca").hide();
+                $("#img_div").hide();
+                //$("#ShowExpressionProfile").show();
+                $("#select_data_type").hide();
+                $("#select_button").hide();
+            })
+
+            $("#GeneExpression").click(function () {
+                $("#mydiv5").hide();
+                $("#mydiv3").show();
+                $("#heatmap").hide();
+                $("#bar").hide();
+                $("#pca").hide();
+                $("#img_div").hide();
+                //$("#ShowExpressionProfile").hide();
+                $("#select_data_type").show();
+                $("#select_button").show();
+
+            })
+            $("#Heatmap").click(function () {
+                $("#mydiv5").hide();
+                $("#mydiv3").hide();
+                $("#heatmap").show();
+                $("#bar").hide();
+                $("#pca").hide();
+                $("#img_div").hide();
+                //$("#ShowExpressionProfile").hide();
+                $("#select_data_type").hide();
+                $("#select_button").hide();
+
+            })
+            $("#Expressionpattern").click(function () {
+                $("#mydiv5").hide();
+                $("#mydiv3").hide();
+                $("#heatmap").hide();
+                $("#bar").show();
+                $("#pca").hide();
+                $("#img_div").hide();
+                //$("#ShowExpressionProfile").hide();
+                $("#select_data_type").hide();
+                $("#select_button").hide();
+
+            })
+            $("#PCA").click(function () {
+                $("#mydiv5").hide();
+                $("#mydiv3").hide();
+                $("#heatmap").hide();
+                $("#bar").hide();
+                $("#pca").show();
+                $("#img_div").hide();
+                //$("#ShowExpressionProfile").hide();
+                $("#select_data_type").hide();
+                $("#select_button").hide();
+
+            })
+            $("#Cluster").click(function () {
+                $("#mydiv5").hide();
+                $("#mydiv3").hide();
+                $("#heatmap").hide();
+                $("#bar").hide();
+                $("#pca").hide();
+                $("#img_div").show();
+                //$("#ShowExpressionProfile").hide();
+                $("#select_data_type").hide();
+                $("#select_button").hide();
+
+            })
+
+            $("#sequence").click(function () {
+                $("#box2").hide();
+                $("#box3").hide();
+                $("#box4").hide();
+            })
+
+            $("#id").click(function () {
+                $("#box2").hide();
+                $("#box3").hide();
+                $("#box4").hide();
+            })
+
+            $("#keyword").click(function () {
+                $("#box2").hide();
+                $("#box3").hide();
+                $("#box4").hide();
+            })
+
+        });
+
+        function validateFasta(fasta) {
+            var origin_fast = fasta;
+            //先檢查有沒有東西
+            if (!fasta) {
+                return false;
+            }
+
+            // 移除多餘的空格
+            fasta = fasta.trim();
+
+            // 檢查有無換行(切割)
+            var lines = fasta.split('\n');
+
+            //若無換行符號
+            if (lines.length == 1) {
+                //檢查有無 ">名稱"
+                if (fasta[0] == '>') {
+                    return false
+                }
+                //fasta為只有序列的情況，加">Query_gene\n"
+                else {
+                    var ID = ">Query_gene\n"
+                    var newArray;
+                    newArray = [ID].concat(lines);
+                    newArray = newArray.join('');
+                    //檢查fasta序列
+                    return { "correct": /^[ACDEFGHIKLMNOPQRSTUVWY\s]+$/i.test(fasta), "data": newArray };
+                }
+            }
+
+            //若有換行符號
+            if (lines.length != 1) {
+                //檢查有無 ">名稱"
+                if (fasta[0] == '>') {
+                    //刪除名稱那行，從第一個位置開始
+                    lines.splice(0, 1);
+                    //fasta為不包含">名稱"的序列
+                    fasta = lines.join('').trim();
+                    //若此序列為空
+                    if (!fasta) {
+                        return false;
+                    }
+
+                    //序列不為空的話，檢查序列
+                    return { "correct": /^[ACDEFGHIKLMNOPQRSTUVWY\s]+$/i.test(fasta), "data": origin_fast };
+                }
+                //若沒名稱
+                else {
+                    var ID = ">Query_gene\n"
+                    var newArray;
+                    newArray = [ID].concat(lines);
+                    newArray = newArray.join('');
+                    //檢查fasta序列
+                    return { "correct": /^[ACDEFGHIKLMNOPQRSTUVWY\s]+$/i.test(fasta), "data": newArray };
+                }
+
+            }
+        }
+        //sequence search pfam的table(有勾選框)
+        function create_table_sequence_pfam_intersection(header, body) {
+            //$("#myDataTable").empty();
+            //console.log(inf);
+            var string = "";
+            //add header
+            string += "<thead><tr>";
+            for (var j = 0; j < header.length; j++) {
+                if (header[j] == "accession") {
+                    string += "<th><input type='checkbox' id='" + header[j] + "' name=accession >" + header[j] + "</th>";
+                }
+                else {
+                    string += "<th>" + header[j] + "</th>"
+                }
+            }
+            string += "</tr></thead>";
+            $("#myDataTable").append(string);
+
+            //add body
+            $("#myDataTable").append("<tbody id=tb1>");
+
+
+            var string2 = "";
+            for (var i = 0; i < body.length; i++) {
+                string2 += "<tr>"
+                for (var k = 0, l = body[i].length; k < l; k++) {
+                    if (k == 0) {
+                        string2 += "<td><input type=checkbox id='" + body[i][k] + "' value='" + body[i][k] + "' name=accession_body ><a href='https://pfam.xfam.org/search/keyword?query=" + body[i][k].split(".")[0] + "' target='_blank'>" + body[i][k] + "</a></td>";
+                    }
+                    else {
+                        string2 += "<td>" + body[i][k] + "</td>";
+                    }
+                }
+                string2 += "</tr>";
+            }
+            $("#myDataTable").append(string2);
+
+            $("#myDataTable").append("</tbody>");
+            $('#myDataTable').DataTable();
+
+        }
+        function create_table_sequence_pfam_jaccard_test(header, body) {
+            //$("#myDataTable").empty();
+            //console.log(inf);
+            var string = "";
+            //string += "<thead><tr>";
+            //add header
+            string += "<thead>\
+                        <tr>\
+                            <th rowspan='2'>Pfam ID</th>\
+                            <th colspan='2'>Envelop</th>\
+                            <th colspan='2'>Alignment</th>\
+                            <th colspan='2'>HMM</th>\
+                            <th rowspan='2'>Independent E value</th>\
+                            <th rowspan='2'>Conditional E value</th>\
+                            <th rowspan='2'>Description</th>\
+                        </tr>";
+            string += "<tr>\
+                            <th>start</th>\
+                            <th>end</th>\
+                            <th>start</th>\
+                            <th>end</th>\
+                            <th>From</th>\
+                            <th>to</th>";
+            // for (var j = 0; j < header.length; j++) {
+            //     string += "<th>" + header[j] + "</th>";
+
+            // }
+            string += "</tr></thead>";
+            $("#myDataTable").append(string);
+
+            //add body
+            $("#myDataTable").append("<tbody id=tb1>");
+
+
+            var string2 = "";
+            for (var i = 0; i < body.length; i++) {
+                string2 += "<tr>"
+                for (var k = 0, l = body[i].length; k < l; k++) {
+                    if (k == 0) {
+                        string2 += "<td><a href='https://pfam.xfam.org/search/keyword?query=" + body[i][k].split(".")[0] + "' target='_blank'>" + body[i][k] + "</a></td>";
+                    }
+                    else {
+                        string2 += "<td>" + body[i][k] + "</td>";
+                    }
+                }
+                string2 += "</tr>";
+            }
+            $("#myDataTable").append(string2);
+
+            $("#myDataTable").append("</tbody>");
+            $('#myDataTable').DataTable();
+        }
+        //sequence search pfam的table(沒勾選框)
+        function create_table_sequence_pfam_jaccard(header, body) {
+            //$("#myDataTable").empty();
+            //console.log(inf);
+            var string = "";
+            //add header
+            string += "<thead><tr>";
+            for (var j = 0; j < header.length; j++) {
+                string += "<th>" + header[j] + "</th>";
+
+            }
+            string += "</tr></thead>";
+            $("#myDataTable").append(string);
+
+            //add body
+            $("#myDataTable").append("<tbody id=tb1>");
+
+
+            var string2 = "";
+            for (var i = 0; i < body.length; i++) {
+                string2 += "<tr>"
+                for (var k = 0, l = body[i].length; k < l; k++) {
+                    if (k == 0) {
+                        string2 += "<td><a href='https://pfam.xfam.org/search/keyword?query=" + body[i][k].split(".")[0] + "' target='_blank'>" + body[i][k] + "</a></td>";
+                    }
+                    else {
+                        string2 += "<td>" + body[i][k] + "</td>";
+                    }
+                }
+                string2 += "</tr>";
+            }
+            $("#myDataTable").append(string2);
+
+            $("#myDataTable").append("</tbody>");
+            $('#myDataTable').DataTable();
+
+        }
+        //keyword search pfam的table(有勾選框)
+        function create_table_keyword_pfam_intersection(header, body) {
+            //$("#myDataTable").empty();
+            //console.log(inf);
+            var string = "";
+            //add header
+            string += "<thead><tr>";
+            for (var j = 0; j < header.length; j++) {
+                if (header[j] == "Pfam ID") {
+                    string += "<th><input type='checkbox' id='" + "Pfam_ID" + "' name=accession >" + header[j] + "</th>";
+                }
+                else {
+                    string += "<th>" + header[j] + "</th>"
+                }
+            }
+            string += "</tr></thead>";
+            $("#myDataTable").append(string);
+
+            //add body
+            $("#myDataTable").append("<tbody id=tb1>");
+
+
+            var string2 = "";
+            for (var i = 0; i < body.length; i++) {
+                string2 += "<tr>"
+                for (var k = 0, l = body[i].length; k < l; k++) {
+                    if (k == 0) {
+                        string2 += "<td><input type=checkbox id='" + body[i][k] + "' value='" + body[i][k] + "' name=accession_body ><a href='https://pfam.xfam.org/search/keyword?query=" + body[i][k].split(".")[0] + "' target='_blank'>" + body[i][k] + "</a></td>";
+                    }
+                    else {
+                        string2 += "<td>" + body[i][k] + "</td>";
+                    }
+                }
+                string2 += "</tr>";
+            }
+            $("#myDataTable").append(string2);
+
+            $("#myDataTable").append("</tbody>");
+            $('#myDataTable').DataTable();
+
+        }
+        //keyword search pfam的table(沒勾選框)
+        function create_table_keyword_pfam_jaccard(header, body) {
+            //$("#myDataTable").empty();
+            //console.log(inf);
+            var string = "";
+            //add header
+            string += "<thead><tr>";
+            for (var j = 0; j < header.length; j++) {
+                string += "<th>" + header[j] + "</th>"
+
+            }
+            string += "</tr></thead>";
+            $("#myDataTable").append(string);
+
+            //add body
+            $("#myDataTable").append("<tbody id=tb1>");
+
+
+            var string2 = "";
+            for (var i = 0; i < body.length; i++) {
+                string2 += "<tr>"
+                for (var k = 0, l = body[i].length; k < l; k++) {
+                    if (k == 0) {
+                        string2 += "<td><a href='https://pfam.xfam.org/search/keyword?query=" + body[i][k].split(".")[0] + "' target='_blank'>" + body[i][k] + "</a></td>";
+                    }
+                    else {
+                        string2 += "<td>" + body[i][k] + "</td>";
+                    }
+                }
+                string2 += "</tr>";
+            }
+            $("#myDataTable").append(string2);
+
+            $("#myDataTable").append("</tbody>");
+            $('#myDataTable').DataTable();
+
+        }
+
+        function create_table_sequence_interpro_intersection(header, body) {
+            //$("#myDataTable").empty();
+            //console.log(inf);
+            var string = "";
+            //add header
+            string += "<thead><tr>";
+            for (var j = 0; j < header.length; j++) {
+                if (header[j] == "InterPro accession") {
+                    string += "<th><input type='checkbox' value='" + header[j] + "' id='InterPro_accession' >" + header[j] + "</th>";
+                }
+                else {
+                    string += "<th>" + header[j] + "</th>"
+                }
+            }
+            string += "</tr></thead>";
+            $("#myDataTable4").append(string);
+
+            //add body
+            $("#myDataTable4").append("<tbody id=tb1>");
+
+
+            var string2 = "";
+            for (var i = 0; i < body.length; i++) {
+                string2 += "<tr>"
+                for (var k = 0, l = body[i].length; k < l; k++) {
+                    if (k == 6) {
+                        if (body[i][k] == "-") {
+                            string2 += "<td>" + body[i][k] + "</td>";
+                        }
+                        else {
+                            string2 += "<td><input type=checkbox id='" + body[i][k] + "' value='" + body[i][k] + "' name='interpro_accession_body' ><a href='http://www.ebi.ac.uk/interpro/entry/" + body[i][k] + "' target='_blank'>" + body[i][k] + "</a></td>";
+                        }
+                    }
+                    else {
+                        string2 += "<td>" + body[i][k] + "</td>";
+                    }
+                }
+                string2 += "</tr>";
+            }
+            $("#myDataTable4").append(string2);
+
+            $("#myDataTable4").append("</tbody>");
+            $('#myDataTable4').DataTable();
+
+        }
+
+        function create_table_sequence_interpro_jaccard(header, body) {
+            //$("#myDataTable").empty();
+            //console.log(inf);
+            var string = "";
+            //add header
+            string += "<thead><tr>";
+            for (var j = 0; j < header.length; j++) {
+                string += "<th>" + header[j] + "</th>"
+            }
+            string += "</tr></thead>";
+            $("#myDataTable4").append(string);
+
+            //add body
+            $("#myDataTable4").append("<tbody id=tb1>");
+
+
+            var string2 = "";
+            for (var i = 0; i < body.length; i++) {
+                string2 += "<tr>"
+                for (var k = 0, l = body[i].length; k < l; k++) {
+                    if (k == 6) {
+                        if (body[i][k] == "-") {
+                            string2 += "<td>" + body[i][k] + "</td>";
+                        }
+                        else {
+                            string2 += "<td><a href='http://www.ebi.ac.uk/interpro/entry/" + body[i][k] + "' target='_blank'>" + body[i][k] + "</a></td>";
+                        }
+                    }
+                    else {
+                        string2 += "<td>" + body[i][k] + "</td>";
+                    }
+                }
+                string2 += "</tr>";
+            }
+            $("#myDataTable4").append(string2);
+
+            $("#myDataTable4").append("</tbody>");
+            $('#myDataTable4').DataTable();
+
+        }
+
+        function create_table_keyword_interpro_intersection(header, body) {
+            //$("#myDataTable").empty();
+            //console.log(inf);
+            var string = "";
+            //add header
+            string += "<thead><tr>";
+            for (var j = 0; j < header.length; j++) {
+                if (header[j] == "Interpro ID") {
+                    string += "<th><input type='checkbox' value='" + header[j] + "' id='Interpro_ID' >" + header[j] + "</th>";
+                }
+                else {
+                    string += "<th>" + header[j] + "</th>"
+                }
+            }
+            string += "</tr></thead>";
+            $("#myDataTable4").append(string);
+
+            //add body
+            $("#myDataTable4").append("<tbody id=tb1>");
+
+
+            var string2 = "";
+            for (var i = 0; i < body.length; i++) {
+                string2 += "<tr>"
+                for (var k = 0, l = body[i].length; k < l; k++) {
+                    if (k == 0) {
+                        if (body[i][k] == "-") {
+                            string2 += "<td>" + body[i][k] + "</td>";
+                        }
+                        else {
+                            string2 += "<td><input type=checkbox id='" + body[i][k] + "' value='" + body[i][k] + "' name='interpro_accession_body' ><a href='http://www.ebi.ac.uk/interpro/entry/" + body[i][k] + "' target='_blank'>" + body[i][k] + "</a></td>";
+                        }
+                    }
+                    else {
+                        string2 += "<td>" + body[i][k] + "</td>";
+                    }
+                }
+                string2 += "</tr>";
+            }
+            $("#myDataTable4").append(string2);
+
+            $("#myDataTable4").append("</tbody>");
+            $('#myDataTable4').DataTable();
+
+        }
+
+        function create_table_keyword_interpro_jaccard(header, body) {
+            //$("#myDataTable").empty();
+            //console.log(inf);
+            var string = "";
+            //add header
+            string += "<thead><tr>";
+            for (var j = 0; j < header.length; j++) {
+                string += "<th>" + header[j] + "</th>"
+            }
+            string += "</tr></thead>";
+            $("#myDataTable4").append(string);
+
+            //add body
+            $("#myDataTable4").append("<tbody id=tb1>");
+
+
+            var string2 = "";
+            for (var i = 0; i < body.length; i++) {
+                string2 += "<tr>"
+                for (var k = 0, l = body[i].length; k < l; k++) {
+                    if (k == 0) {
+                        if (body[i][k] == "-") {
+                            string2 += "<td>" + body[i][k] + "</td>";
+                        }
+                        else {
+                            string2 += "<td><a href='http://www.ebi.ac.uk/interpro/entry/" + body[i][k] + "' target='_blank'>" + body[i][k] + "</a></td>";
+                        }
+                    }
+                    else {
+                        string2 += "<td>" + body[i][k] + "</td>";
+                    }
+                }
+                string2 += "</tr>";
+            }
+            $("#myDataTable4").append(string2);
+
+            $("#myDataTable4").append("</tbody>");
+            $('#myDataTable4').DataTable();
+
+        }
+
+
+        function create_table_library_gene(header, body) {
+            //$("#myDataTable").empty();
+            //console.log(inf);
+            var string = "";
+            //add header
+            string += "<thead><tr><th><input type=checkbox id='checkall' name='CheckAll ID' ><label for='CheckAll ID'> CheckAll ID</label></th>";
+            for (var j = 0; j < header.length; j++) {
+                string += "<th>" + header[j] + "</th>";
+            }
+            string += "</tr></thead>";
+            $("#myDataTable2").append(string);
+
+            //add body
+            $("#myDataTable2").append("<tbody id=tb1>");
+            //console.log("ok");
+            //console.log(Object.keys(inf).length - 2);
+
+
+            for (var i = 0; i < body.length; i++) {
+                var string2 = "";
+                string2 += "<tr name ='tr" + i + "'><td><input type='checkbox' value='" + body[i][0] + "' name='ID' ></td>";
+                //console.log(inf[i + 2].length);
+                for (var k = 0, l = body[i].length; k < l; k++) {
+                    //console.log(inf[i + 2][k]);
+                    string2 += "<td>" + body[i][k] + "</td>";
+                    //console.log(string2);
+                }
+                string2 += "</tr>";
+                //console.log(string2);
+                $("#myDataTable2").append(string2);
+            }
+            $("#myDataTable2").append("</tbody>");
+            $('#myDataTable2').DataTable();
+
+        }
+
+        function selected_ID_table(selected_id_list, header, body) {//Jaccard_body:[["Peq001283", 1, "PF01370.21,PF16363.5,PF01073.].[["Peq006585", 1, "PF01370.21,PF16363.5,PF01073.1]...]
+
+
+
+            //用字典紀錄id和位置資訊
+            var id_dic = {};
+            for (var i = 0; i < body.length; i++) {
+                id_dic[body[i][0]] = i;
+            }
+            //紀錄 勾選的ID在body中的位置
+            var selected_id = [];
+            for (var j = 0; j < selected_id_list.length; j++) {
+                selected_id.push(id_dic[selected_id_list[j]]);
+            }
+            //selected_id=[1,3,5]
+
+            var string = "";
+            //add header
+            string += "<thead><tr>";
+            for (var j = 0; j < header.length; j++) {
+                string += "<th>" + header[j] + "</th>";
+            }
+            string += "</tr></thead>";
+            $("#myDataTable5").append(string);
+
+            //add body
+            $("#myDataTable5").append("<tbody id=tb1>");
+
+
+            for (var i = 0; i < selected_id.length; i++) {
+                var string2 = "";
+                string2 += "<tr>";
+
+                for (var k = 0, l = body[selected_id[i]].length; k < l; k++) {
+
+                    string2 += "<td>" + body[selected_id[i]][k] + "</td>";
+
+                }
+                string2 += "</tr>";
+
+                $("#myDataTable5").append(string2);
+            }
+            $("#myDataTable5").append("</tbody>");
+            $('#myDataTable5').DataTable();
+
+        }
+
+        function create_expression_table(header, id, body) {
+            //$("#myDataTable").empty();
+            //console.log(inf);
+            var string = "";
+            //add header
+            string += "<thead><tr><th><input type=checkbox id='checkall2' name=CheckAll ID ><label for='CheckAll ID'> CheckAll ID</label></th>";
+            for (var j = 0; j < header.length; j++) {
+                string += "<th><input type=checkbox id='" + header[j] + "' name=header >" + header[j] + "</th>";
+            }
+            string += "</tr></thead>";
+            $("#myDataTable3").append(string);
+
+            //add body
+            $("#myDataTable3").append("<tbody id=tb1>");
+            //console.log("ok");
+            //console.log(Object.keys(inf).length - 2);
+
+
+            for (var i = 0; i < id.length; i++) {
+                var string2 = "";
+                string2 += "<tr name ='tr" + i + "'><td><input type=checkbox value='" + id[i] + "' name=ID2 >" + id[i] + "</td>";
+                //console.log(inf[i + 2].length);
+                for (var k = 0, l = body[i].length; k < l; k++) {
+                    //console.log(inf[i + 2][k]);
+                    string2 += "<td>" + body[i][k] + "</td>";
+                    //console.log(string2);
+                }
+                string2 += "</tr>";
+                //console.log(string2);
+                $("#myDataTable3").append(string2);
+            }
+            $("#myDataTable3").append("</tbody>");
+            $('#myDataTable3').DataTable();
+
+        }
+
+        function select_table(header, geneid, body, checkedheader, checkedID) {
+            var header = header
+            var id = geneid;
+            var header_dic = {};
+            var id_dic = {};
+            var select_header = [];
+            var select_geneid = [];
+            var select_body = [];
+
+            for (var i = 0; i < header.length; i++) {
+                header_dic[header[i]] = i;
+            }
+            for (var i = 0; i < id.length; i++) {
+                id_dic[id[i]] = i;
+            }
+
+            $("#myDataTable3").empty();
+            var string = "";
+            //add header
+            string += "<thead><tr><th></th>";
+            for (var j = 0; j < checkedheader.length; j++) {
+                string += "<th>" + header[header_dic[checkedheader[j]]] + "</th>";
+                select_header.push(checkedheader[j]);
+                //console.log(select_header);
+            }
+            string += "</tr></thead>";
+            $("#myDataTable3").append(string);
+
+            //add body
+            $("#myDataTable3").append("<tbody id=tb1>");
+
+            for (var i = 0; i < checkedID.length; i++) {
+                var temp = [];
+                var string2 = "";
+                string2 += "<tr name ='tr" + i + "'><td>" + id[id_dic[checkedID[i]]] + "</td>";
+                for (var j = 0; j < checkedheader.length; j++) {
+                    string2 += "<td>" + body[id_dic[checkedID[i]]][header_dic[checkedheader[j]]] + "</td>";
+                    temp.push(body[id_dic[checkedID[i]]][header_dic[checkedheader[j]]]);
+                }
+                string2 += "</tr>";
+                //console.log(string2);
+                $("#myDataTable3").append(string2);
+                select_geneid.push(checkedID[i]);
+                select_body.push(temp);
+            }
+            $("#myDataTable3").append("</tbody>");
+            $('#myDataTable3').DataTable();
+            //console.log(data);
+            //console.log(select_header);
+            //console.log(select_geneid);
+            //console.log(select_body);
+            return { 'select_header': select_header, 'select_geneid': select_geneid, 'select_body': select_body };
+        }
+
+        function plotheatmap(header, id, body) {
+            var xValues = header;
+            var yValues = id.reverse();
+            var zValues = body.reverse();
+            //find max zValues
+            var maxRow = zValues.map(function (row) { return Math.max.apply(Math, row); });
+            console.log("各基因最大值:" + maxRow);
+            var max = Math.max.apply(null, maxRow);
+            //console.log(max);
+            //find average
+            var total = 0;
+            for (var i = 0; i < maxRow.length; i++) {
+                total += maxRow[i];
+            }
+            var avg = total / maxRow.length;
+            console.log("平均最大值:" + avg);
+
+            var data = [
+                {
+                    z: zValues,
+                    x: xValues,
+                    y: yValues,
+                    colorscale: 'Hot',
+                    type: 'heatmap',
+                    "reversescale": true,//顏色反向
+                }
+            ];
+
+            var layout = {
+                title: 'Heatmap',
+                annotations: [],
+                xaxis: {
+                    ticks: '',
+                    side: 'top'
+                }
+            }
+
+            for (var i = 0; i < yValues.length; i++) {
+                for (var j = 0; j < xValues.length; j++) {
+                    var currentValue = zValues[i][j];
+                    if (currentValue > (max / 2)) {
+                        var textColor = 'white';
+                    } else {
+                        var textColor = 'black';
+                    }
+                    var result = {
+                        xref: 'x1',
+                        yref: 'y1',
+                        x: xValues[j],
+                        y: yValues[i],
+                        text: zValues[i][j],
+                        font: {
+                            family: 'Arial',
+                            size: 12,
+                            color: 'rgb(50, 171, 96)'
+                        },
+                        showarrow: false,
+                        font: {
+                            color: textColor
+                        }
+                    };
+                    layout.annotations.push(result);
+                }
+            }
+
+
+
+            Plotly.newPlot('heatmap', data, layout);
+        }
+
+        function plotpca(pca_list, geneid) {
+
+            var listx = [];
+            var listy = [];
+            var textlist = geneid;
+
+            for (var i = 0; i < Object.keys(pca_list).length; i++) {
+                listx.push(pca_list[i][0]);
+                listy.push(pca_list[i][1]);
+            }
+
+            var trace1 = {
+                x: listx,
+                y: listy,
+                //x: [1, 2, 3, 4],
+                //y: [10, 15, 13, 17],
+                mode: 'markers',
+                type: 'scatter',
+                text: textlist
+            };
+
+            var data = [trace1];
+
+            Plotly.newPlot('pca', data);
+        }
+
+        function plotbar(header, geneid, body) {
+            var data = [];
+            //var k = 'trace';
+            for (var i = 0, l = Object.keys(body).length; i < l; i++) {
+                for (var j = 0, k = body[i].length; j < k; j++) {
+                    if (body[i][j] == "null") {
+                        body[i].splice(j, 1, '-1');
+                    };
+                };
+                //console.log(inf[i + 2]);
+                window['trace' + i] = {
+                    x: header,
+                    y: body[i],
+                    name: geneid[i],
+                    type: 'bar'
+                };
+                data.push(window['trace' + i]);
+            }
+            //console.log(data);
+
+
+            var layout = {
+                yaxis: { title: 'FPKM' },
+                barmode: 'group'
+            };
+
+            Plotly.newPlot('bar', data, layout);
+        }
+
+        /*function back() {
+                   var href = window.location.href;//https://cosbi.ee.ncku.edu.tw/orchidbase6/pfam/?type=all_species
+                   var type = href.split("=")[1];
+                   $("#back2").attr("href","https://cosbi.ee.ncku.edu.tw/orchidbase6/pfam/?type="+type);
+                   
+               };*/
+
+    </script>
+</head>
+{% endblock %}
+
+{% block form %}
+
+<body>
+
+    <div class="container">
+        <h1>Domain Search</h1>
+        <div class="box" id="box1">
+            <div id="tabs">
+                <ul>
+                    <li><a href="#tabs-1" id="sequence">Sequence</a></li>
+                    <li><a href="#tabs-2" id="id">ID</a></li>
+                    <li><a href="#tabs-3" id="keyword">Keyword</a></li>
+                </ul>
+                <div id="tabs-1">
+                    <p>Search for sequence within the textual data in the Pfam database.</p><br>
+                    Enter Query Sequence:
+                    <input id="clear" type="button" value="Clear" class="btn btn-primary" style="float:right">
+                    <input id="example" type="button" value="Example: Peq006585" class="btn btn-primary"
+                        style="float:right"><br>
+                    <textarea type="text" id="inp" style="min-width: 55vw; height: 20vh"></textarea><br>
+                    <div id="search_tool" class="search-options">
+                        <label><input id="select_Pfam" type="radio" name="search_tool" value="select_Pfam"
+                                checked="true" style="margin-left: 10px">Pfam</label>
+                        <label><input id="select_Interproscan" type="radio" name="search_tool"
+                                value="select_Interproscan">Interproscan</label>
+                    </div><br>
+                    <button id="submit" style="width: 4vw; height: 4vh; font-size : 12px;"
+                        class="btn btn-primary">Submit</button>
+
+                </div>
+                <div id="tabs-2">
+                    <p>Please select a library and similarity and then enter a pfam family ID or Interpro ID to search
+                        the orchid database</p><br>
+                    Enter query ID:
+                    <input id="clear2" type="button" value="Clear" class="btn btn-primary" style="float:right">
+                    <input id="example2" type="button" value="Example" class="btn btn-primary"
+                        style="float:right"><br><br>
+                    <input type="text" name="query_ID" size="100" maxlength="100" id="query_ID"><br>
+                    <div id="search_tool2" class="search-options">
+                        <label><input id="select_Pfam2" type="radio" name="search_tool2" value="select_Pfam2"
+                                checked="true" style="margin-left: 10px">Pfam</label>
+                        <label><input id="select_Interproscan2" type="radio" name="search_tool2"
+                                value="select_Interproscan2">Interproscan</label>
+                    </div><br>
+                    <button id="submit2" style="width: 4vw; height: 4vh; font-size : 12px;"
+                        class="btn btn-primary">Submit</button>
+                </div>
+
+                <div id="tabs-3">
+                    <p>Search for key word within the textual data in the Pfam database.</p><br><br>
+                    Enter query key word:
+                    <input id="clear3" type="button" value="Clear" class="btn btn-primary" style="float:right">
+                    <input id="example3" type="button" value="Example" class="btn btn-primary"
+                        style="float:right"><br><br>
+                    <input type="text" name="query_keyword" size="100" maxlength="100" id="query_keyword"><br>
+                    <div id="search_tool2" class="search-options">
+                        <label><input id="select_Pfam3" type="radio" name="search_tool3" value="select_Pfam3"
+                                checked="true" style="margin-left: 10px">Pfam</label>
+                        <label><input id="select_Interproscan3" type="radio" name="search_tool3"
+                                value="select_Interproscan3">Interproscan</label>
+                    </div><br>
+                    <button id="submit3" style="width: 4vw; height: 4vh; font-size : 12px;"
+                        class="btn btn-primary">Submit</button>
+                </div>
+
+            </div>
+        </div>
+        <!--<div id="back_div2" style="display: none"><a id="back2" onclick="back()" href="https://cosbi.ee.ncku.edu.tw/orchidbase6/pfam/">back</a></div>-->
+        <div class="ui blue tertiary inverted segment" id="box2" style="display: none;">
+            <div class="ui blue inverted segment header block">Domain Search Result and Program Option</div>
+            <div class="ui segment">
+                <p class="text-light bg-dark">library</p>
+                <select id="library">
+                    <option value="Phalaenopsis">Phalaenopsis</option>
+                    <option value="Dendrobium">Dendrobium</option>
+                    <option value="Apostasia">Apostasia</option>
+                    <option value="Vpompona">Vpompona</option>
+                    <option value="Vshenzhenica">Vshenzhenica</option>
+                    <option value="Pguangdongensis">Pguangdongensis</option>
+                    <option value="Pzijinensis">Pzijinensis</option>
+                    <option value="Paphiopedilum">Paphiopedilum</option>
+                    <option value="Ldiscolor">Ldiscolor</option>
+                    <option value="all_species">All Species</option>
+                </select>
+                <br><br>
+
+                <p class="text-light bg-dark">Similarity</p>
+                <select id="Similarity">
+                    <option id="Jaccard">Jaccard</option>
+                    <option id="Intersection">Intersection</option>
+                    <option id="Union">Union</option>
+                </select>
+                <br><br>
+
+                <p class="text-light bg-dark">select cut-off value</p>
+                <select id="select_cutoff_similar_value">
+                    <option id="0.5">0.5</option>
+                    <option id="0.7">0.7</option>
+                </select>
+                <br><br>
+
+                <div id="mydiv"></div>
+                <div id="mydiv4"></div>
+                <div id="download"><a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/HMMER/download" rel="link"
+                        style="color:rgb(10, 116, 255);">Download Result</a></div><br>
+                <button id="show_similar_gene" style="width: 4vw; height: 4vh; font-size : 12px;"
+                    class="btn btn-primary">Show Similar Genes</button>
+            </div>
+        </div>
+
+        <div id="box3" class="ui blue tertiary inverted segment" style="display: none">
+            <div class="ui blue inverted segment header block">Similar Result</div>
+            <div class="ui segment">
+                <div id="mydiv2"></div>
+                <input type='button' id="ShowExpressionProfile" value="Show Expression Profile" class="btn btn-primary">
+            </div>
+        </div>
+
+        <div id="box4" class="ui blue tertiary inverted segment" style="display: none">
+            <div class="ui blue inverted segment header block">Expression Profile</div>
+            <div class="ui segment">
+                <div id='expression_button' style='display: none;' class="btn-group btn-group-toggle"
+                    data-toggle="buttons">
+                    <label class="btn btn-secondary active">
+                        <input type="radio" name="options" id="similar_result" autocomplete="off" checked> Similar
+                        result
+                    </label>
+                    <label class="btn btn-secondary active">
+                        <input type="radio" name="options" id="GeneExpression" autocomplete="off" checked> Gene
+                        expression
+                    </label>
+                    <label class="btn btn-secondary active">
+                        <input type="radio" name="options" id="Heatmap" autocomplete="off" checked> Heatmap
+                    </label>
+                    <label class="btn btn-secondary active">
+                        <input type="radio" name="options" id="Expressionpattern" autocomplete="off" checked> Expression
+                        pattern
+                    </label>
+                    <label class="btn btn-secondary active">
+                        <input type="radio" name="options" id="PCA" autocomplete="off" checked> PCA
+                    </label>
+                    <label class="btn btn-secondary active">
+                        <input type="radio" name="options" id="Cluster" autocomplete="off" checked> Cluster
+                    </label>
+                </div>
+                <div>
+                    <select id="select_data_type" style='display: none;'>
+                        <option id="raw_data">contig</option>
+                        <option id="TPM">TPM</option>
+                        <option id="FPKM">FPKM</option>
+                    </select>
+                </div>
+                <div id="mydiv5"></div>
+                <div id="mydiv3" style="display: none"></div>
+                <div id="select_button" class="btn-group" style='display: none;'>
+                    <button type="button" id="select_table" class="btn btn-primary">reflash</button>
+                    <button type="button" id="reset_table" class="btn btn-primary" disabled="false">reset</button>
+                </div>
+                <div id="heatmap" style='display: none; height: 1000px;width: 1000px;'></div>
+                <div id="pca" style='display: none;height: 1000px;width: 1000px;'></div>
+                <div id="bar" style='display: none;height: 1000px;width: 1000px;'></div>
+                <div id="img_div" style='display: none;'>
+                    <table class="style7" id="img_table">
+                        <tr>
+                            <td bgcolor="#99CCFF" class="style1">colorbar length value:</td>
+                            <td bgcolor="#99CCFF" class="style1">min value :</td>
+                            <td bgcolor="#99CCFF" class="style1">max value:</td>
+                            <td bgcolor="#99CCFF" class="style1">figure size:</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <select id="colorbar">
+                                    <option checked="checked" value="default">default</option>
+                                    <option value="select value">select value</option>
+                                </select>
+                            </td>
+                            <td>
+                                <select id="vmin" disabled="false">
+                                    <option value="0">0</option>
+                                    <option value="-10">-10</option>
+                                </select>
+                            </td>
+                            <td>
+                                <input type="text" name="vmax" id="vmax" disabled="false">
+                            </td>
+                            <td>
+                                <select id="figsize">
+                                    <option checked="checked" value="(10, 10)">(10, 10)</option>
+                                    <option value="(7,5)">(7,5)</option>
+                                    <option value="(2,1)">(2,1)</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td bgcolor="#99CCFF" class="style1">row cluster:</td>
+                            <td bgcolor="#99CCFF" class="style1">colorbar position:</td>
+                            <td bgcolor="#99CCFF" class="style1">color map:</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <select id="row_cluster">
+                                    <option checked="checked" value="True">True</option>
+                                    <option value="False">False</option>
+                                </select>
+                            </td>
+                            <td>
+                                <select id="cbar_pos">
+                                    <option checked="checked" value="(0.02, 0.8, 0.05, 0.18)">(0.02, 0.8, 0.05, 0.18)
+                                    </option>
+                                    <option value="(0, .2, .03, .4)">(0, .2, .03, .4)</option>
+                                </select>
+                            </td>
+                            <td>
+                                <select id="cmap">
+                                    <!--<option value="default">default</option>-->
+                                    <option checked="checked" value="mako">mako</option>
+                                    <option value="vlag">vlag</option>
+                                    <option value="hot">hot</option>
+                                    <option value="Greens">Greens</option>
+                                    <option value="YlGnBu">YlGnBu</option>
+                                    <option value="Purples">Purples</option>
+                                    <option value="Greys">Greys</option>
+                                </select>
+                            </td>
+                            <td>
+                                <input type="button" id="plot_cluster" class="btn btn-primary" value="Plot Cluster"
+                                    Height="34px" Width="81px">
+                            </td>
+                        </tr>
+                    </table>
+                    <img src="" id="img" />
+                    <div id="cluster_text"></div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+</body>
+
+{% endblock %}

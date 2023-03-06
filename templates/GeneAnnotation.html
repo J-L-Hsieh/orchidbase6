@@ -1,0 +1,816 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+{% block script_var %}
+
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.22/css/jquery.dataTables.css">
+    <!--<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/plug-ins/1.10.22/pagination/select.js"></script>-->
+    <!--dropdown_list-->
+    <script type="text/javascript" charset="utf8"
+        src="https://cdn.datatables.net/1.10.22/js/jquery.dataTables.js"></script>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/superfish.css' %}" media="screen">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/Style.css' %}">
+    <!--需要此css置中用-->
+    <!-- semanticUI -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
+    <link rel="stylesheet" type="text/css"
+        href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css">
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('.ui.dropdown').dropdown({ on: 'hover' });
+        });
+    </script>
+    <script src="{% static 'js/jquery.blockUI.js' %}"></script>
+    <!--讀取中-->
+    <style type="text/css">
+        .dataTable thead tr {
+            background-color: #272727;
+            color: white;
+        }
+    </style>
+    <script type='text/javascript'>
+        $(document).ready(function () {
+            $.ajaxSetup({
+                data: {
+                    csrfmiddlewaretoken: '{{ csrf_token  }}'
+                },
+            });
+            var select_data = $("#select option:selected").val();
+            //console.log(select_data);
+            var href = window.location.href;
+            var temp = href.split("=");
+            if (temp.length == 1 || temp.length == 2) {
+                $.blockUI({
+                    css: {
+                        border: 'none',
+                        padding: '15px',
+                        backgroundColor: '#000',
+                        '-webkit-border-radius': '10px',
+                        '-moz-border-radius': '10px',
+                        opacity: .5,
+                        color: '#fff',
+                        message: "Loding..."
+                    }
+                });
+                var start_time1 = new Date().getTime();
+                if (temp.length == 1) {
+                    var Type = "Phalaenopsis";
+                }
+                else {
+                    var Type = temp[1];
+                };
+                $("#select").val(Type);
+                $.ajax({
+                    url: 'GeneAnnotation/ajax_parse/',
+                    data: { 'type': Type },
+                    type: 'POST',
+                    dataType: 'json',
+                    success: function (data) {
+                        console.log(data);
+
+                        var header = [];
+
+                        for (var j = 0; j < data[0].length; j++) {
+                            var temp = {};
+                            temp["title"] = data[0][j];
+                            //console.log(temp);
+                            header.push(temp);
+                            // console.log(header);
+                        }
+                        //console.log(header);
+                        var body = data[1];
+                        //console.log(body);
+
+                        var loc_header = data[2];
+                        var loc_body = data[3];
+                        var dict = {};
+                        for (var i = 0; i < loc_body.length; i++) {
+                            dict[loc_body[i][0]] = loc_body[i][1]
+                        }
+                        //console.log(dict)
+                        //console.log(loc_body[0][1]);
+                        //調整datatable參數
+                        $('#mydiv').empty();//先clear前一次的DataTable
+                        $("#mydiv").html("<table id ='myDataTable'  class='cell-border table-striped' border='1'></table>")
+                        $('#myDataTable').append("<tfoot><tr><td></td><td><input type='text' placeholder='Search Gene ID' /></td><td><input type='text' placeholder='Search Gene Location' /></td><td><input type='text' placeholder='Search Gene Expression' /></td><td><input type='text' placeholder='Search GeneBank' /></td><td></td><td><input type='text' placeholder='Search Annotation' /></td><td><input type='text' placeholder='Search Species' /></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></tfoot>");
+                        //'<input type="text" placeholder="Search '+title+'" />'
+                        var end_time1 = new Date().getTime();
+                        console.log("後端花:" + (end_time1 - start_time1) / 1000 + "sec");
+
+                        var start_time2 = new Date().getTime();
+                        var table = $('#myDataTable').DataTable(
+                            {
+                                data: body,
+                                columns: header,
+                                "scrollX": true,
+                                "deferRender": true,
+                                //"sPaginationType": "listbox",
+                                initComplete: function () {
+                                    // Apply the search
+                                    this.api().columns().every(function () {
+                                        var that = this;
+
+                                        $('input', this.footer()).on('keyup change clear', function () {
+                                            if (that.search() !== this.value) {
+                                                that
+                                                    .search(this.value)
+                                                    .draw();
+                                            }
+                                        });
+                                    });
+                                },
+                                "columnDefs": [
+                                    {
+                                        "targets": 1,
+                                        //"data": "Gene ID",
+                                        "render": function (data, type, row, meta) {
+                                            return '<a href="/t50504_project/GeneAnnotation/GeneID_detail/?id=' + data + '&type=' + row[0] + '" target="_blank">' + data + '</a>';
+                                            //return '<a href="/t50504_project/GeneAnnotation/'+data+'" target="_blank">'+ data +'</a>';
+                                        }
+                                    },
+                                    {
+                                        "targets": 2,
+                                        //"data": "Gene ID",
+                                        "render": function (data, type, row, meta) {
+                                            return '<a href="http://cosbi.ee.ncku.edu.tw/t50504_project/Genome_Browser/?type=' + row[0] + '&loc=' + dict[data] + '" target="_blank">' + data + '</a>';
+                                            //return '<a href="/t50504_project/GeneAnnotation/'+data+'" target="_blank">'+ data +'</a>';
+                                        }
+                                    },
+                                    {
+                                        "targets": 3,
+                                        //"data": "Gene ID",
+                                        "render": function (data, type, row, meta) {
+                                            return '<a href="http://cosbi.ee.ncku.edu.tw/t50504_project/GeneExpression/?id=' + data + '&type=' + row[0] + '" target="_blank">' + data + '</a>';
+                                            //return '<a href="/t50504_project/GeneAnnotation/'+data+'" target="_blank">'+ data +'</a>';
+                                        }
+                                    },
+                                    {
+                                        "targets": 5,
+                                        //"data": "Accession number(Best hits in the GenBank)",
+                                        "render": function (data, type, row, meta) {
+                                            if (data != "*No hits found*") {
+                                                return '<a href="https://www.ncbi.nlm.nih.gov/protein/' + data + '" target="_blank">' + data + '</a>';
+                                            }
+                                            else {
+                                                return data
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "targets": 12,
+                                        //"data": "Accession number(Best hits in the GenBank)",
+                                        "render": function (data, type, row, meta) {
+                                            if (data != "No hit") {
+                                                if (data.split("[")[1] == "no pathway]") {
+                                                    return '<a href="https://www.genome.jp/dbget-bin/www_bget?ath:' + data.split("[")[0] + '" target="_blank">' + data + '</a>';
+                                                }
+                                                else {
+                                                    return '<a href="http://cosbi.ee.ncku.edu.tw/t50504_project/GeneAnnotation/ViewPathway/?id=' + row[1] + '&type=' + row[0] + '" target="_blank">' + data + '</a>';
+                                                }
+                                            }
+                                            else {
+                                                return data
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "targets": 13,
+                                        "render": function (data, type, row, meta) {
+                                            if (data != "No hit") {
+                                                return '<a href="http://cosbi.ee.ncku.edu.tw/t50504_project/GeneAnnotation/ViewGoTerm/?id=' + row[1] + '&type=' + row[0] + '" target="_blank">' + data + '</a>';
+                                            }
+                                            else {
+                                                return data
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "targets": 14,
+                                        "render": function (data, type, row, meta) {
+                                            if (data != "No hit") {
+                                                return '<a href="http://cosbi.ee.ncku.edu.tw/t50504_project/GeneAnnotation/ViewInterPro/?id=' + row[1] + '&type=' + row[0] + '" target="_blank">' + data + '</a>';
+                                            }
+                                            else {
+                                                return data
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "targets": 15,
+                                        //"data": "Accession number(Best hits in the GenBank)",
+                                        "render": function (data, type, row, meta) {
+                                            if (data != "No hit") {
+                                                return '<a href="https://www.uniprot.org/uniprot/' + data + '" target="_blank">' + data + '</a>';
+                                            }
+                                            else {
+                                                return data
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "targets": 16,
+                                        //"data": "Accession number(Best hits in the GenBank)",
+                                        "render": function (data, type, row, meta) {
+                                            if (data != "No hit") {
+                                                return '<a href="https://www.uniprot.org/uniprot/' + data + '" target="_blank">' + data + '</a>';
+                                            }
+                                            else {
+                                                return data
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "targets": 17,
+                                        //"data": "Accession number(Best hits in the GenBank)",
+                                        "render": function (data, type, row, meta) {
+                                            if (data != "No hit") {
+                                                return "<a href='http://cosbi.ee.ncku.edu.tw/orchidbase6/promoter/?type=" + row[0] + "?id=" + row[1] + "'' target='_blank'>" + data + "</a>";
+                                            }
+                                            else {
+                                                return data
+                                            }
+                                        }
+                                    }
+                                ]
+
+                            });
+
+                        var end_time2 = new Date().getTime();
+                        console.log("餵資料加連結:" + (end_time2 - start_time2) / 1000 + "sec");
+                        $.unblockUI(); //Loading...跑完後關掉
+                    },
+                    error: function () {
+                        console.log("error");
+                        $.unblockUI(); //Loading...跑完後關掉
+                    },
+                });
+            }
+            else {
+                var href = window.location.href;
+                var temp = href.split("=");//["http://cosbi.ee.ncku.edu.tw/t50504_project/GeneAnnotation/?id", "Peq000001&type", "Phalaenopsis"]
+                $.blockUI({
+                    css: {
+                        border: 'none',
+                        padding: '15px',
+                        backgroundColor: '#000',
+                        '-webkit-border-radius': '10px',
+                        '-moz-border-radius': '10px',
+                        opacity: .5,
+                        color: '#fff',
+                        message: "Loding..."
+                    }
+                });
+                var id = temp[1].split("&")[0];
+                var type = temp[2];
+                $.ajax({
+                    url: 'GeneAnnotation/ajax_parse2/',
+                    data: { 'id': id, 'type': type },
+                    type: 'POST',
+                    dataType: 'json',
+                    success: function (data) {
+                        console.log(data.d)
+
+                        var header = [];
+                        var body = [];
+                        for (var j = 0; j < data.d[0].length; j++) {
+                            var temp = {};
+                            temp["title"] = data.d[0][j];
+                            //console.log(temp);
+                            header.push(temp);
+                            // console.log(header);
+                        }
+                        //console.log(header);
+                        var body2 = data.d[1];
+                        body.push(body2);
+                        //console.log(body);
+
+
+                        var loc_body = data.d[2];
+                        var dict = {};
+
+                        dict[loc_body[0]] = loc_body[1];
+
+                        //console.log(dict);
+
+                        //調整datatable參數
+                        $('#mydiv').empty();//先clear前一次的DataTable
+                        $("#mydiv").html("<table id ='myDataTable'  class='cell-border table-striped' border='1'></table>")
+                        $('#myDataTable').DataTable(
+                            {
+                                data: body,
+                                columns: header,
+                                "scrollX": true,
+                                "deferRender": true,
+                                "columnDefs": [
+                                    {
+                                        "targets": 1,
+                                        //"data": "Gene ID",
+                                        "render": function (data, type, row, meta) {
+                                            return '<a href="/t50504_project/GeneAnnotation/GeneID_detail/?id=' + data + '&type=' + row[0] + '" target="_blank">' + data + '</a>';
+                                            //return '<a href="/t50504_project/GeneAnnotation/'+data+'" target="_blank">'+ data +'</a>';
+                                        }
+                                    },
+                                    {
+                                        "targets": 2,
+                                        //"data": "Gene ID",
+                                        "render": function (data, type, row, meta) {
+                                            return '<a href="http://cosbi.ee.ncku.edu.tw/t50504_project/Genome_Browser/?type=' + row[0] + '&loc=' + dict[data] + '" target="_blank">' + data + '</a>';
+                                            //return '<a href="/t50504_project/GeneAnnotation/'+data+'" target="_blank">'+ data +'</a>';
+                                        }
+                                    },
+                                    {
+                                        "targets": 3,
+                                        //"data": "Gene ID",
+                                        "render": function (data, type, row, meta) {
+                                            return '<a href="http://cosbi.ee.ncku.edu.tw/t50504_project/GeneExpression/?id=' + data + '&type=' + row[0] + '" target="_blank">' + data + '</a>';
+                                            //return '<a href="/t50504_project/GeneAnnotation/'+data+'" target="_blank">'+ data +'</a>';
+                                        }
+                                    },
+                                    {
+                                        "targets": 5,
+                                        //"data": "Accession number(Best hits in the GenBank)",
+                                        "render": function (data, type, row, meta) {
+                                            if (data != "*No hits found*") {
+                                                return '<a href="https://www.ncbi.nlm.nih.gov/protein/' + data + '" target="_blank">' + data + '</a>';
+                                            }
+                                            else {
+                                                return data
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "targets": 12,
+                                        //"data": "Accession number(Best hits in the GenBank)",
+                                        "render": function (data, type, row, meta) {
+                                            if (data != "No hit") {
+                                                if (data.split("[")[1] == "no pathway]") {
+                                                    return '<a href="https://www.genome.jp/dbget-bin/www_bget?ath:' + data.split("[")[0] + '" target="_blank">' + data + '</a>';
+                                                }
+                                                else {
+                                                    return '<a href="http://cosbi.ee.ncku.edu.tw/t50504_project/GeneAnnotation/ViewPathway/?id=' + row[1] + 't&ype=' + row[0] + '" target="_blank">' + data + '</a>';
+                                                }
+                                            }
+                                            else {
+                                                return data
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "targets": 13,
+                                        "render": function (data, type, row, meta) {
+                                            if (data != "No hit") {
+                                                return '<a href="http://cosbi.ee.ncku.edu.tw/t50504_project/GeneAnnotation/ViewGoTerm/?id=' + row[1] + '&type=' + row[0] + '" target="_blank">' + data + '</a>';
+                                            }
+                                            else {
+                                                return data
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "targets": 14,
+                                        "render": function (data, type, row, meta) {
+                                            if (data != "No hit") {
+                                                return '<a href="http://cosbi.ee.ncku.edu.tw/t50504_project/GeneAnnotation/ViewInterPro/?id=' + row[1] + '&type=' + row[0] + '" target="_blank">' + data + '</a>';
+                                            }
+                                            else {
+                                                return data
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "targets": 15,
+                                        //"data": "Accession number(Best hits in the GenBank)",
+                                        "render": function (data, type, row, meta) {
+                                            if (data != "No hit") {
+                                                return '<a href="https://www.uniprot.org/uniprot/' + data + '" target="_blank">' + data + '</a>';
+                                            }
+                                            else {
+                                                return data
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "targets": 16,
+                                        //"data": "Accession number(Best hits in the GenBank)",
+                                        "render": function (data, type, row, meta) {
+                                            if (data != "No hit") {
+                                                return '<a href="https://www.uniprot.org/uniprot/' + data + '" target="_blank">' + data + '</a>';
+                                            }
+                                            else {
+                                                return data
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "targets": 17,
+                                        //"data": "Accession number(Best hits in the GenBank)",
+                                        "render": function (data, type, row, meta) {
+                                            if (data != "No hit") {
+                                                return "<a href='http://cosbi.ee.ncku.edu.tw/orchidbase6/promoter/?type=" + row[0] + "?id=" + row[1] + "'' target='_blank'>" + data + "</a>";
+                                            }
+                                            else {
+                                                return data
+                                            }
+                                        }
+                                    }
+                                ]
+
+                            }
+                        );
+                        $.unblockUI(); //Loading...跑完後關掉
+                    },
+                    error: function () {
+                        console.log("error");
+                        $.unblockUI(); //Loading...跑完後關掉
+                    },
+                });
+
+            }
+
+
+            $("#View").click(function () {
+                $.blockUI({
+                    css: {
+                        border: 'none',
+                        padding: '15px',
+                        backgroundColor: '#000',
+                        '-webkit-border-radius': '10px',
+                        '-moz-border-radius': '10px',
+                        opacity: .5,
+                        color: '#fff',
+                        message: "Loding..."
+                    }
+                });
+                var select_data2 = $("#select option:selected").val();
+
+                $.ajax({
+                    url: 'GeneAnnotation/ajax_parse/',
+                    data: { 'type': select_data2 },
+                    //data:{'type':select_data2,'query':query,'annotation':annotation,'species':species},
+                    type: 'POST',
+                    dataType: 'json',
+                    success: function (data) {
+                        //console.log(data.d)
+
+                        var header = [];
+
+                        for (var j = 0; j < data[0].length; j++) {
+                            var temp = {};
+                            temp["title"] = data[0][j];
+                            //console.log(temp);
+                            header.push(temp);
+                            // console.log(header);
+                        }
+                        //console.log(header);
+                        var body = data[1];
+
+                        var loc_header = data[2];
+                        var loc_body = data[3];
+                        var dict = {};
+                        for (var i = 0; i < loc_body.length; i++) {
+                            dict[loc_body[i][0]] = loc_body[i][1]
+                        }
+                        //console.log(dict)
+                        //console.log(loc_body[0][1]);
+
+
+                        //調整datatable參數
+                        $('#mydiv').empty();//先clear前一次的DataTable
+                        $("#mydiv").html("<table id ='myDataTable'  class='cell-border table-striped' border='1'></table>");
+                        $('#myDataTable').append("<tfoot><tr><td></td><td><input type='text' placeholder='Search Gene ID' /></td><td><input type='text' placeholder='Search Gene Location' /></td><td><input type='text' placeholder='Search Gene Expression' /></td><td><input type='text' placeholder='Search GeneBank' /></td><td></td><td><input type='text' placeholder='Search Annotation' /></td><td><input type='text' placeholder='Search Species' /></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></tfoot>");
+                        $('#myDataTable').DataTable(
+                            {
+                                data: body,
+                                columns: header,
+                                "scrollX": true,
+                                "deferRender": true,
+                                initComplete: function () {
+                                    // Apply the search
+                                    this.api().columns().every(function () {
+                                        var that = this;
+
+                                        $('input', this.footer()).on('keyup change clear', function () {
+                                            if (that.search() !== this.value) {
+                                                that
+                                                    .search(this.value)
+                                                    .draw();
+                                            }
+                                        });
+                                    });
+                                },
+                                "columnDefs": [
+                                    {
+                                        "targets": 1,
+                                        //"data": "Gene ID",
+                                        "render": function (data, type, row, meta) {
+                                            return '<a href="/t50504_project/GeneAnnotation/GeneID_detail/?id=' + data + '&type=' + row[0] + '" target="_blank">' + data + '</a>';
+                                            //return '<a href="/t50504_project/GeneAnnotation/'+data+'" target="_blank">'+ data +'</a>';
+                                        }
+                                    },
+                                    {
+                                        "targets": 2,
+                                        //"data": "Gene ID",
+                                        "render": function (data, type, row, meta) {
+                                            return '<a href="http://cosbi.ee.ncku.edu.tw/t50504_project/Genome_Browser/?type=' + row[0] + '&loc=' + dict[data] + '" target="_blank">' + data + '</a>';
+                                            //return '<a href="/t50504_project/GeneAnnotation/'+data+'" target="_blank">'+ data +'</a>';
+                                        }
+                                    },
+                                    {
+                                        "targets": 3,
+                                        //"data": "Gene ID",
+                                        "render": function (data, type, row, meta) {
+                                            return '<a href="http://cosbi.ee.ncku.edu.tw/t50504_project/GeneExpression/?id=' + data + '&type=' + row[0] + '" target="_blank">' + data + '</a>';
+                                            //return '<a href="/t50504_project/GeneAnnotation/'+data+'" target="_blank">'+ data +'</a>';
+                                        }
+                                    },
+                                    {
+                                        "targets": 5,
+                                        //"data": "Accession number(Best hits in the GenBank)",
+                                        "render": function (data, type, row, meta) {
+                                            if (data != "*No hits found*") {
+                                                return '<a href="https://www.ncbi.nlm.nih.gov/protein/' + data + '" target="_blank">' + data + '</a>';
+                                            }
+                                            else {
+                                                return data
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "targets": 12,
+                                        //"data": "Accession number(Best hits in the GenBank)",
+                                        "render": function (data, type, row, meta) {
+                                            if (data != "No hit") {
+                                                if (data.split("[")[1] == "no pathway]") {
+                                                    return '<a href="https://www.genome.jp/dbget-bin/www_bget?ath:' + data.split("[")[0] + '" target="_blank">' + data + '</a>';
+                                                }
+                                                else {
+                                                    return '<a href="http://cosbi.ee.ncku.edu.tw/t50504_project/GeneAnnotation/ViewPathway/?id=' + row[1] + '&type=' + row[0] + '" target="_blank">' + data + '</a>';
+                                                }
+                                            }
+                                            else {
+                                                return data
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "targets": 13,
+                                        "render": function (data, type, row, meta) {
+                                            if (data != "No hit") {
+                                                return '<a href="http://cosbi.ee.ncku.edu.tw/t50504_project/GeneAnnotation/ViewGoTerm/?id=' + row[1] + '&type=' + row[0] + '" target="_blank">' + data + '</a>';
+                                            }
+                                            else {
+                                                return data
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "targets": 14,
+                                        "render": function (data, type, row, meta) {
+                                            if (data != "No hit") {
+                                                return '<a href="http://cosbi.ee.ncku.edu.tw/t50504_project/GeneAnnotation/ViewInterPro/?id=' + row[1] + '&type=' + row[0] + '" target="_blank">' + data + '</a>';
+                                            }
+                                            else {
+                                                return data
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "targets": 15,
+                                        //"data": "Accession number(Best hits in the GenBank)",
+                                        "render": function (data, type, row, meta) {
+                                            if (data != "No hit") {
+                                                return '<a href="https://www.uniprot.org/uniprot/' + data + '" target="_blank">' + data + '</a>';
+                                            }
+                                            else {
+                                                return data
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "targets": 16,
+                                        //"data": "Accession number(Best hits in the GenBank)",
+                                        "render": function (data, type, row, meta) {
+                                            if (data != "No hit") {
+                                                return '<a href="https://www.uniprot.org/uniprot/' + data + '" target="_blank">' + data + '</a>';
+                                            }
+                                            else {
+                                                return data
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "targets": 17,
+                                        //"data": "Accession number(Best hits in the GenBank)",
+                                        "render": function (data, type, row, meta) {
+                                            if (data != "No hit") {
+                                                return "<a href='http://cosbi.ee.ncku.edu.tw/orchidbase6/promoter/?type=" + row[0] + "?id=" + row[1] + "'' target='_blank'>" + data + "</a>";
+                                            }
+                                            else {
+                                                return data
+                                            }
+                                        }
+                                    }
+                                ]
+
+                            });
+                        $.unblockUI(); //Loading...跑完後關掉
+
+                    },
+                    error: function () {
+                        console.log("error");
+                        $.unblockUI(); //Loading...跑完後關掉
+                    },
+                });
+            })
+        })
+
+
+    </script>
+    <script type="text/javascript">
+        /* 
+  Based on select paging plugin
+  https://datatables.net/plug-ins/pagination/select
+*/
+
+        $.fn.dataTable.SelectPager = function (context) {
+            var table = new $.fn.dataTable.Api(context);
+            var tableId = context.nTable.id;
+
+            // Build select input
+            var nPaging = document.createElement('div');
+            var nInput = document.createElement('select');
+            var nPage = document.createElement('span');
+            var nOf = document.createElement('span');
+            nOf.className = "paginate_of";
+            nPage.className = "paginate_page";
+            if (tableId !== '') {
+                nPaging.setAttribute('id', tableId + '_paginate');
+            }
+            nInput.style.display = "inline";
+            nPage.innerHTML = "Page ";
+
+            nPaging.appendChild(nPage);
+            nPaging.appendChild(nInput);
+            nPaging.appendChild(nOf);
+            $(nInput).change(function (e) { // Set DataTables page property and redraw the grid on select change event.
+                window.scroll(0, 0); //scroll to top of page
+                if (this.value === "" || this.value.match(/[^0-9]/)) { /* Nothing entered or non-numeric character */
+                    return;
+                }
+
+                // Extract table ID from select div.
+                tableId = '#' + $(this).closest('div').prop('id').replace('_paginate', '');
+                var newPage = this.value * 1 - 1;  // First page is page 0.
+                $(tableId).DataTable().page(newPage).draw(false);  // false to remain on page.
+            }); /* Take the brutal approach to cancelling text selection */
+            $('span', nPaging).bind('mousedown', function () {
+                return false;
+            });
+            $('span', nPaging).bind('selectstart', function () {
+                return false;
+            });
+
+            this.node = function () {
+                return nPaging;
+            };
+
+        };
+
+        $.fn.DataTable.SelectPager = $.fn.dataTable.SelectPager;
+
+        $.fn.dataTable.ext.feature.push({
+            fnInit: function (settings) {
+                var select = new $.fn.dataTable.SelectPager(settings);
+                return select.node();
+            },
+            cFeature: 'S'
+        });
+
+        $(document).ready(function () {
+            var table = $('#example')
+                .on('draw.dt', function (e, settings) {
+                    // Get Datatable.
+                    var table = new $.fn.dataTable.Api(settings);
+                    var tableId = settings.nTable.id;
+
+                    var selectPager = document.getElementById(tableId + '_paginate');
+                    if (selectPager) {
+
+                        // Get current page and total pages.
+                        var iPages = table.page.info().pages;
+                        var iCurrentPage = table.page.info().page;
+
+                        // Get select elements.
+                        var spans = selectPager.getElementsByTagName('span');
+                        var inputs = selectPager.getElementsByTagName('select');
+                        elSel = inputs[0];
+
+                        // Update select options if number of pages has changed.
+                        if (elSel.options.length != iPages) {
+                            elSel.options.length = 0; //clear the listbox contents
+                            for (var j = 0; j < iPages; j++) { //add the pages
+                                var oOption = document.createElement('option');
+                                oOption.text = j + 1;
+                                oOption.value = j + 1;
+                                try {
+                                    elSel.add(oOption, null); // standards compliant; doesn't work in IE
+                                } catch (ex) {
+                                    elSel.add(oOption); // IE only
+                                }
+                            }
+                            spans[1].innerHTML = "&nbsp;of&nbsp;" + iPages;
+                        }
+                        elSel.value = iCurrentPage + 1;
+                    }
+                })
+                .DataTable({
+                    dom: '<"top"lSfrip>t<"bottom"lSfrip>'
+                });
+
+        });
+
+    </script>
+
+</head>
+{% endblock %}
+
+{% block form %}
+
+<body>
+    <form id="form1" runat="server">
+        <div style="margin: 0 auto;width: 800px;">
+            <header id="mainHeader">
+                <img src="{% static 'img/banner.jpg'%}" alt="Banner" />
+            </header>
+        </div>
+        <div id="contain" class="ui-tabs ui-widget ui-widget-content ui-corner-all" style="width:100%">
+            <br>
+            <div id="content">
+                <table>
+                    <tr>
+                        <td><a href="#" onclick="javascript:history.back();" style="font-size:larger">back</a></td>
+                    </tr>
+                    <tr>
+                        <td bgcolor="#0066FF" class="style5" style="color: #FFFFFF">Select Library</td>
+                        <td class="style6">
+                            <select id="select">
+                                <option value="Phalaenopsis">Phalaenopsis</option>
+                                <option value="Dendrobium">Dendrobium</option>
+                                <option value="Apostasia">Apostasia</option>
+                                <option value="Vpompona">Vpompona</option>
+                                <option value="Vshenzhenica">Vshenzhenica</option>
+                                <option value="Pguangdongensis">Pguangdongensis</option>
+                                <option value="Pzijinensis">Pzijinensis</option>
+                                <option value="Ldiscolor">Ldiscolor</option>
+                            </select>
+                        </td>
+                        <!--<td bgcolor="#0066FF" class="style7" style="color: #FFFFFF">
+                    <span lang="zh-tw">Query Name:</span>
+                </td>
+                <td>
+                    <input id="Query" type="text" name="Query">
+                </td>-->
+                    </tr>
+
+                    <!--<tr>
+                <td bgcolor="#0066FF" class="style7" style="color: #FFFFFF">
+                    <span lang="zh-tw">Annotation:</span>
+                </td>
+                <td>
+                    <input id="Annotation" type="text" name="Annotation">
+                </td>
+
+                <td bgcolor="#0066FF" class="style7" style="color: #FFFFFF">
+                    <span lang="zh-tw">Species:</span>
+                </td>
+                <td>
+                    <input id="Species" type="text" name="Species">
+                </td>
+            </tr>-->
+                    <tr>
+                        <td class="auto-style1">
+                            <input type="button" value="View/Search" id="View">
+                        </td>
+                        <!--<td></td>
+                <td bgcolor="#0066FF" class="auto-style2" style="color: #FFFFFF">
+                    Select Page
+                </td>
+                <td>
+                      <select id="language">
+
+                      </select>
+                </td>-->
+                    </tr>
+                </table><br>
+
+
+
+                <div id="mydiv"></div>
+            </div>
+            <footer id="footer" />
+        </div>
+    </form>
+</body>
+
+{% endblock %}

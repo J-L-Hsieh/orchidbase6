@@ -1,0 +1,1632 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+{% block script_var %}
+
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.22/css/jquery.dataTables.css">
+    <script type="text/javascript" charset="utf8"
+        src="https://cdn.datatables.net/1.10.22/js/jquery.dataTables.js"></script>
+    <script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
+    <!--畫圖用-->
+    <!--bootstrap-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+        integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+        crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+        integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+        crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/superfish.css' %}" media="screen">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/Style.css' %}">
+    <!--需要此css置中用-->
+    <!-- Include jquery mark ( for highlighting text )-->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/mark.js/8.6.0/jquery.mark.min.js"></script>
+    <script type="text/javascript"
+        src="https://cdn.jsdelivr.net/datatables.mark.js/2.0.0/datatables.mark.min.js"></script>
+    <!-- semanticUI -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
+    <link rel="stylesheet" type="text/css"
+        href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css">
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('.ui.dropdown').dropdown({ on: 'hover' });
+        });
+    </script>
+    <script src="{% static 'js/jquery.blockUI.js' %}"></script>
+    <!--讀取中-->
+    <style type="text/css">
+        .dataTable thead tr {
+            background-color: #272727;
+            color: white;
+        }
+
+
+        .style7 {
+            text-align: left;
+            width: 109px;
+        }
+
+        .auto-style1 {
+            height: 29px;
+        }
+
+        .auto-style2 {
+            text-align: left;
+            width: 109px;
+            height: 29px;
+        }
+
+        mark {
+            padding: 0;
+            background: #f1c40f;
+        }
+    </style>
+
+    <script type='text/javascript'>
+        $(document).ready(function () {
+            $.ajaxSetup({
+                data: {
+                    csrfmiddlewaretoken: '{{ csrf_token  }}'
+                },
+            });
+            //全域變數，用來存第一次的資料
+            var table_data;
+            var obj = "";
+            var select_data = $("#select option:selected").val();
+            var select_data_type = $("#select_data_type").val();
+            var href = window.location.href;
+            var temp = href.split("=");//[http://140.116.214.130/orchidbase6/Transcriptome/?type,Phalaenopsis]
+            //console.log(temp.length);
+            if (temp.length == 1 || temp.length == 2) {
+                $.blockUI({
+                    css: {
+                        border: 'none',
+                        padding: '15px',
+                        backgroundColor: '#000',
+                        '-webkit-border-radius': '10px',
+                        '-moz-border-radius': '10px',
+                        opacity: .5,
+                        color: '#fff',
+                        message: "Loding..."
+                    }
+                });
+                $("#no_id_condition").show();
+                $("#id_condition").hide();
+                //console.log(window.location.href);
+                var start_time1 = new Date().getTime();
+                if (temp.length == 1) {
+                    var Type = "Phalaenopsis";
+                }
+                else {
+                    var Type = temp[1];
+                }
+                var select_data_type = $("#select_data_type").val();
+                $("#select").val(Type);
+                console.log(select_data_type);
+                $.ajax({
+                    url: 'Transcriptome/ajax_parse/',
+                    data: { 'type': Type, 'select_data_type': select_data_type },
+                    type: 'POST',
+                    dataType: 'json',
+                    success: function (data) {
+                        //console.log(data.d)
+
+                        var header = [];
+
+                        for (var j = 0; j < data.d[0].length; j++) {
+                            var temp = {};
+                            temp["title"] = data.d[0][j];
+                            //console.log(temp);
+                            header.push(temp);
+                            // console.log(header);
+                        }
+                        //console.log(header);
+                        var body = data.d[1];
+                        //調整datatable參數
+                        $('#mydiv').empty();
+                        $('#mydiv').html("<table id='myDataTable'  class='table table-hover dt-responsive order-columnmemberList tblFormat cell-border table-striped' border='1'></table>");
+                        var end_time1 = new Date().getTime();
+                        console.log("後端花:" + (end_time1 - start_time1) / 1000 + "sec");
+
+                        var start_time2 = new Date().getTime();
+                        $('#myDataTable').DataTable(
+                            {
+                                data: body,
+                                columns: header,
+                                //"scrollX": true,
+                                "deferRender": true,
+                                "columnDefs": [
+
+                                    {
+                                        "targets": 0,
+                                        //"data": "Gene ID",
+                                        "render": function (data, type, row, meta) {
+                                            return '<a href="http://140.116.214.130/orchidbase6/GeneAnnotation/?id=' + data + '&type=' + Type + '" target="_blank">' + data + '</a>';
+                                            //return '<a href="/orchidbase6/GeneAnnotation/'+data+'" target="_blank">'+ data +'</a>';
+                                        }
+                                    }],
+
+                            }
+                        );
+                        var end_time2 = new Date().getTime();
+                        console.log("datatable餵資料加連結:" + (end_time2 - start_time2) / 1000 + "sec");
+                        $.unblockUI(); //Loading...跑完後關掉
+
+                    },
+                    error: function () {
+                        console.log("error");
+                        $.unblockUI(); //Loading...跑完後關掉
+                    },
+                });
+            }
+            else {//["http://140.116.214.130/orchidbase6/Transcriptome/?id", "Peq023316&type", "Phalaenopsis"]
+                $.blockUI({
+                    css: {
+                        border: 'none',
+                        padding: '15px',
+                        backgroundColor: '#000',
+                        '-webkit-border-radius': '10px',
+                        '-moz-border-radius': '10px',
+                        opacity: .5,
+                        color: '#fff',
+                        message: "Loding..."
+                    }
+                });
+
+                $("#no_id_condition").hide();
+                $("#id_condition").show();
+                var id = window.location.href;
+                var temp = id.split("=");//["http://140.116.214.130/orchidbase6/Transcriptome/?id", "Peq023316&type", "Phalaenopsis"]
+                var id = temp[1].split("&")[0];
+                var type = temp[2];
+                var select_data_type = $("#select_data_type3").val();
+                //console.log(select_data_type);
+                var shorthand_dict = { "Peq": "Phalaenopsis", "Dca": "Dendrobium", "Ash": "Apostasia", "Vpo": "Vpompona", "Vsh": "Vshenzhenica", "Pgu": "Pguangdongensis", "Pzi": "Pzijinensis" };
+                $.ajax({
+                    url: 'Transcriptome/ajax_parse2/',
+                    data: { 'id': id, "type": type, 'select_data_type': select_data_type },
+                    type: 'POST',
+                    dataType: 'json',
+                    success: function (data) {
+                        //console.log(data)
+
+                        var header = [];
+                        var body = data[1];
+                        for (var j = 0; j < data[0].length; j++) {
+                            var temp = {};
+                            temp["title"] = data[0][j];
+                            header.push(temp);
+                        }
+                        //console.log(header);
+                        //console.log(body);
+
+                        //調整datatable參數
+                        $('#mydiv3').empty();
+                        $('#mydiv3').html("<table id='myDataTable3'  class='table table-hover dt-responsive order-columnmemberList tblFormat cell-border table-striped' border='1'></table>");
+                        $('#myDataTable3').DataTable(
+                            {
+                                data: body,
+                                columns: header,
+                                "scrollX": true,
+                                "deferRender": true,
+                                "ordering": false,//不知道為啥它會自動幫你排序，導致資料和heatmap對不起來，所以要關掉
+                                "columnDefs": [
+                                    {
+                                        "targets": 1,
+                                        //"data": "Gene ID",
+                                        "render": function (data, type, row, meta) {
+                                            return '<a href="http://140.116.214.130/orchidbase6/GeneAnnotation/?id=' + data + '&type=' + shorthand_dict[data.substring(0, 3)] + '" target="_blank">' + data + '</a>';
+                                            //return '<a href="/orchidbase6/GeneAnnotation/'+data+'" target="_blank">'+ data +'</a>';
+                                        }
+                                    }],
+                                "rowCallback": function (row, data, index) {
+                                    if (data[0] == type) {
+                                        $("td:eq(0)", row).css('background-color', 'pink');
+                                    }
+                                }
+
+
+
+                            }
+                        );
+                        //console.log(data.d);
+                        plotheatmap3(data[2], data[3], data[4]);
+                        $.unblockUI(); //Loading...跑完後關掉
+
+                    },
+                    error: function () {
+                        console.log("error");
+                        $.unblockUI(); //Loading...跑完後關掉
+                    },
+                });
+
+            }
+
+            $("#View").click(function () {
+                var href = window.location.href;
+                var temp = href.split("=");
+                $.blockUI({
+                    css: {
+                        border: 'none',
+                        padding: '15px',
+                        backgroundColor: '#000',
+                        '-webkit-border-radius': '10px',
+                        '-moz-border-radius': '10px',
+                        opacity: .5,
+                        color: '#fff',
+                        message: "Loding..."
+                    }
+                });
+
+
+                var type = $("#select").val();
+                //window.location.href="http://140.116.214.130/orchidbase6/Transcriptome/?type=" + type;//此寫法雖會讓url同步，但會同時刷新頁面導致下面ajax沒執行
+                var select_data_type = $("#select_data_type").val();
+                //console.log(select_data_type);
+                $.ajax({
+                    url: 'Transcriptome/ajax_parse/',
+                    data: { 'type': type, 'select_data_type': select_data_type },
+                    type: 'POST',
+                    dataType: 'json',
+                    success: function (data) {
+                        console.log(data.d);
+                        if (data.d[2] == "1") {
+                            var header = [];
+                            for (var j = 0; j < data.d[0].length; j++) {
+                                var temp = {};
+                                temp["title"] = data.d[0][j];
+                                //console.log(temp);
+                                header.push(temp);
+                                // console.log(header);
+                            }
+                            //console.log(header);
+                            var body = data.d[1];
+                        }
+                        else {
+
+                            var header = [];
+                            var body = data.d[1];
+                            for (var j = 0; j < data.d[0].length; j++) {
+                                var temp = {};
+                                temp["title"] = data.d[0][j];
+                                //temp["sTitle"] = data.d[0][j];
+                                //console.log(temp);
+                                header.push(temp);
+                                // console.log(header);
+                            }
+                            //console.log(header);
+                            //console.log(body);
+                        }
+
+                        //調整datatable參數
+                        //$('#myDataTable').DataTable().clear().destroy();//先clear前一次的DataTable
+                        $('#mydiv').empty();
+                        $('#mydiv').html("<table id='myDataTable'  class='table table-hover dt-responsive order-columnmemberList tblFormat cell-border table-striped' border='1'></table>");
+                        $('#myDataTable').DataTable(
+                            {
+                                //destroy:true,
+                                //retrieve:true,
+                                data: body,
+                                columns: header,
+                                //"scrollX": true,
+                                "deferRender": true,
+                                "columnDefs": [
+                                    {
+                                        "targets": 0,
+                                        //"data": "Gene ID",
+                                        "render": function (data, type, row, meta) {
+                                            return '<a href="http://140.116.214.130/orchidbase6/GeneAnnotation/?id=' + data + '&type=' + Type + '" target="_blank">' + data + '</a>';
+                                            //return '<a href="/orchidbase6/GeneAnnotation/'+data+'" target="_blank">'+ data +'</a>';
+                                        }
+                                    }]
+
+                            }
+                        );
+                        $.unblockUI(); //Loading...跑完後關掉
+                    },
+                    error: function () {
+                        console.log("error");
+                        $.unblockUI(); //Loading...跑完後關掉
+                    },
+                });
+
+            })
+            $("#View2").click(function () {
+                var href = window.location.href;
+                var temp = href.split("=");
+                $.blockUI({
+                    css: {
+                        border: 'none',
+                        padding: '15px',
+                        backgroundColor: '#000',
+                        '-webkit-border-radius': '10px',
+                        '-moz-border-radius': '10px',
+                        opacity: .5,
+                        color: '#fff',
+                        message: "Loding..."
+                    }
+                });
+
+
+                var type = $("#select").val();
+                //window.location.href="http://140.116.214.130/orchidbase6/Transcriptome/?type=" + type;//此寫法雖會讓url同步，但會同時刷新頁面導致下面ajax沒執行
+                var query = $("#Query").val();
+                var select_data_type = $("#select_data_type2").val();
+                if (query == "") {
+                    alert("Please query sequence ID or key word");
+                }
+                else {
+                    if ($("#sequence_id").prop("checked")) {
+                        $.ajax({
+                            url: 'Transcriptome/ajax_parse3/',
+                            data: { 'type': type, 'query': query, 'select_data_type': select_data_type },
+                            type: 'POST',
+                            dataType: 'json',
+                            success: function (data) {
+                                console.log(data);
+                                table_data = data;
+                                $("#expression_button").show();
+                                $("#mydiv2").show();
+                                $("#select_button").show();
+                                $("#select_data_type2").show();
+                                //plot_table
+                                $('#mydiv2').empty();
+                                $('#mydiv2').html("<table id='myDataTable2'  class='datatable-table table-hover dt-responsive order-columnmemberList tblFormat cell-border table-striped' ></table>");
+                                create_table(data[0], data[1]);
+                                //關閉ordering功能  
+                                $('#myDataTable2').DataTable({
+                                    "destroy": true,
+                                    "ordering": false,
+                                    "scrollX": true,
+                                })
+
+                                $('#checkall').click(function () {
+                                    //console.log("ok");
+                                    if ($('#checkall').prop("checked"))//如果全選按鈕有被選擇的話（被選擇是true）
+                                    {
+                                        //console.log("ok");
+                                        //$("input[name='ID']").prop("checked",true);//把所有的核取方框的property都變成勾選，若有第二頁，此方法會出問題
+                                        $('#myDataTable2').DataTable()
+                                            .column(0)
+                                            .nodes()
+                                            .to$()
+                                            .find('input[name=ID]')
+                                            .prop('checked', this.checked);//true
+                                    }
+                                    else {
+                                        //$("input[name='ID']").prop("checked",false);//把所有的核取方框的property都取消勾選，若有第二頁，此方法會出問題
+                                        $('#myDataTable2').DataTable()
+                                            .column(0)
+                                            .nodes()
+                                            .to$()
+                                            .find('input[name=ID]')
+                                            .prop('checked', false);
+                                    }
+                                });
+                                //plotheatmap
+                                plotheatmap(data[2], data[3], data[4]);
+
+                                //plotcluster
+                                if (data[5] == "no picture") {
+                                    document.getElementById("img").src = "";
+                                }
+                                else {
+                                    document.getElementById("img").src = "../../../t50504_static/img/heatmap/" + data[5] + ".png" //絕對路徑寫法，因為寫相對路徑會出錯
+                                    //document.getElementById("img").src="{% static 'img/heatmap/OktRM.png' %}"
+                                }
+
+                                //plotpca
+                                if (data[6] == "no pca") {
+                                    $("#pca").empty();
+                                }
+                                else {
+                                    plotpca(data[6], data[3]);
+                                }
+                                //plotbar
+                                plotbar(data[2], data[3], data[4]);
+
+                                $.unblockUI(); //跑完後關掉
+                            },
+                            error: function () {
+                                console.log("error");
+                                $.unblockUI(); //Loading...跑完後關掉
+                            },
+                        });
+                    }
+                    else {
+                        $.ajax({
+                            url: 'Transcriptome/ajax_parse5/',
+                            data: { 'type': type, 'query': query, 'select_data_type': select_data_type },
+                            type: 'POST',
+                            dataType: 'json',
+                            success: function (data) {
+                                console.log(data);
+                                table_data = data;
+                                $("#expression_button").show();
+                                $("#mydiv2").show();
+                                $("#select_button").show();
+                                $("#select_data_type2").show();
+
+                                //plot_table
+                                $('#mydiv2').empty();
+                                $('#mydiv2').html("<table id='myDataTable2'  class='table table-hover dt-responsive order-columnmemberList tblFormat cell-border table-striped' ></table>");
+                                create_table(data[0], data[1]);
+                                //關閉ordering功能  
+                                $('#myDataTable2').DataTable({
+                                    "destroy": true,
+                                    "ordering": false,
+                                    "scrollX": true,
+                                    mark: true,//https://jsfiddle.net/julmot/buh9h2r8/
+                                    "search": {//https://stackoverflow.com/questions/48316191/jquery-datatables-set-default-search-value-for-a-column-when-initializing-a-tab
+                                        "search": query
+                                    }
+                                })
+
+                                $('#checkall').click(function () {
+                                    //console.log("ok");
+                                    if ($('#checkall').prop("checked"))//如果全選按鈕有被選擇的話（被選擇是true）
+                                    {
+                                        //console.log("ok");
+                                        //$("input[name='ID']").prop("checked",true);//把所有的核取方框的property都變成勾選，若有第二頁，此方法會出問題
+                                        $('#myDataTable2').DataTable()
+                                            .column(0)
+                                            .nodes()
+                                            .to$()
+                                            .find('input[name=ID]')
+                                            .prop('checked', this.checked);//true
+                                    }
+                                    else {
+                                        //$("input[name='ID']").prop("checked",false);//把所有的核取方框的property都取消勾選，若有第二頁，此方法會出問題
+                                        $('#myDataTable2').DataTable()
+                                            .column(0)
+                                            .nodes()
+                                            .to$()
+                                            .find('input[name=ID]')
+                                            .prop('checked', false);
+                                    }
+                                });
+                                //plotheatmap
+                                plotheatmap(data[2], data[3], data[4]);
+
+                                //plotcluster
+                                if (data[5] == "no picture") {
+                                    document.getElementById("img").src = "";
+                                }
+                                else {
+                                    document.getElementById("img").src = "../../../t50504_static/img/heatmap/" + data[5] + ".png" //絕對路徑寫法，因為寫相對路徑會出錯
+                                    //document.getElementById("img").src="{% static 'img/heatmap/OktRM.png' %}"
+                                }
+
+                                //plotpca
+                                if (data[6] == "no pca") {
+                                    $("#pca").empty();
+                                }
+                                else {
+                                    plotpca(data[6], data[3]);
+                                }
+                                //plotbar
+                                plotbar(data[2], data[3], data[4]);
+
+                                $.unblockUI(); //跑完後關掉
+                            },
+                            error: function () {
+                                console.log("error");
+                                $.unblockUI(); //Loading...跑完後關掉
+                            },
+                        });
+                    }
+                }
+            })
+
+            $("#View3").click(function () {
+                $.blockUI({
+                    css: {
+                        border: 'none',
+                        padding: '15px',
+                        backgroundColor: '#000',
+                        '-webkit-border-radius': '10px',
+                        '-moz-border-radius': '10px',
+                        opacity: .5,
+                        color: '#fff',
+                        message: "Loding..."
+                    }
+                });
+
+                var href = window.location.href;
+                var temp = href.split("=");//["http://140.116.214.130/t50504_project/GeneExpression/?id", "Peq023316&type", "Phalaenopsis"]
+                var type = temp[2];
+                var id = temp[1].split("&")[0];
+                $.blockUI({
+                    css: {
+                        border: 'none',
+                        padding: '15px',
+                        backgroundColor: '#000',
+                        '-webkit-border-radius': '10px',
+                        '-moz-border-radius': '10px',
+                        opacity: .5,
+                        color: '#fff',
+                        message: "Loding..."
+                    }
+                });
+
+                var select_data_type = $("#select_data_type3").val();
+                //console.log(select_data_type);
+                $.ajax({
+                    url: 'Transcriptome/ajax_parse2/',
+                    data: { 'id': id, "type": type, 'select_data_type': select_data_type },
+                    type: 'POST',
+                    dataType: 'json',
+                    success: function (data) {
+                        //console.log(data)
+
+                        var header = [];
+                        var body = data[1];
+                        for (var j = 0; j < data[0].length; j++) {
+                            var temp = {};
+                            temp["title"] = data[0][j];
+                            //temp["sTitle"] = data.d[0][j];
+                            //console.log(temp);
+                            header.push(temp);
+                            // console.log(header);
+                        }
+
+                        //調整datatable參數
+                        $('#mydiv3').empty();
+                        $('#mydiv3').html("<table id='myDataTable3'  class='cell-border table-striped' border='1'></table>");
+                        $('#myDataTable3').DataTable(
+                            {
+                                data: body,
+                                columns: header,
+                                "scrollX": true,
+                                "deferRender": true,
+                                "ordering": false,
+                                "columnDefs": [
+                                    {
+                                        "targets": 1,
+                                        //"data": "Gene ID",
+                                        "render": function (data, type, row, meta) {
+                                            return '<a href="http://140.116.214.130/t50504_project/GeneAnnotation/?id=' + data + '&type=' + Type + '" target="_blank">' + data + '</a>';
+                                            //return '<a href="/t50504_project/GeneAnnotation/'+data+'" target="_blank">'+ data +'</a>';
+                                        }
+                                    }],
+                                "rowCallback": function (row, data, index) {
+                                    if (data[0] == type) {
+                                        $("td:eq(0)", row).css('background-color', 'pink');
+                                    }
+                                }
+
+
+                            }
+                        );
+                        //console.log(data.d);
+                        plotheatmap3(data[2], data[3], data[4]);
+                        $.unblockUI(); //Loading...跑完後關掉
+                    },
+                    error: function () {
+                        console.log("error");
+                        $.unblockUI(); //Loading...跑完後關掉
+                    },
+                });
+
+            })
+
+            $('#select_data_type2').change(function () {
+                $.blockUI({
+                    css: {
+                        border: 'none',
+                        padding: '15px',
+                        backgroundColor: '#000',
+                        '-webkit-border-radius': '10px',
+                        '-moz-border-radius': '10px',
+                        opacity: .5,
+                        color: '#fff',
+                        message: "Loding..."
+                    }
+                });
+
+                var type = $("#select").val();
+                //window.location.href="http://140.116.214.130/orchidbase6/Transcriptome/?type=" + type;//此寫法雖會讓url同步，但會同時刷新頁面導致下面ajax沒執行
+                var query = $("#Query").val();
+                var select_data_type = $("#select_data_type2").val();
+                if (query == "") {
+                    alert("Please query sequence ID or key word");
+                }
+                else {
+                    if ($("#sequence_id").prop("checked")) {
+                        $.ajax({
+                            url: 'Transcriptome/ajax_parse3/',
+                            data: { 'type': type, 'query': query, 'select_data_type': select_data_type },
+                            type: 'POST',
+                            dataType: 'json',
+                            success: function (data) {
+                                console.log(data);
+                                table_data = data;
+                                $("#expression_button").show();
+                                $("#mydiv2").show();
+                                $("#select_button").show();
+                                $("#select_data_type2").show();
+
+                                //plot_table
+                                $('#mydiv2').empty();
+                                $('#mydiv2').html("<table id='myDataTable2'  class='table table-hover dt-responsive order-columnmemberList tblFormat cell-border table-striped' ></table>");
+                                create_table(data[0], data[1]);
+                                //關閉ordering功能  
+                                $('#myDataTable2').DataTable({
+                                    "destroy": true,
+                                    "ordering": false,
+                                    "scrollX": true,
+                                })
+
+                                $('#checkall').click(function () {
+                                    //console.log("ok");
+                                    if ($('#checkall').prop("checked"))//如果全選按鈕有被選擇的話（被選擇是true）
+                                    {
+                                        //console.log("ok");
+                                        //$("input[name='ID']").prop("checked",true);//把所有的核取方框的property都變成勾選，若有第二頁，此方法會出問題
+                                        $('#myDataTable2').DataTable()
+                                            .column(0)
+                                            .nodes()
+                                            .to$()
+                                            .find('input[name=ID]')
+                                            .prop('checked', this.checked);//true
+                                    }
+                                    else {
+                                        //$("input[name='ID']").prop("checked",false);//把所有的核取方框的property都取消勾選，若有第二頁，此方法會出問題
+                                        $('#myDataTable2').DataTable()
+                                            .column(0)
+                                            .nodes()
+                                            .to$()
+                                            .find('input[name=ID]')
+                                            .prop('checked', false);
+                                    }
+                                });
+                                //plotheatmap
+                                plotheatmap(data[2], data[3], data[4]);
+
+                                //plotcluster
+                                if (data[5] == "no picture") {
+                                    document.getElementById("img").src = "";
+                                }
+                                else {
+                                    document.getElementById("img").src = "../../../t50504_static/img/heatmap/" + data[5] + ".png" //絕對路徑寫法，因為寫相對路徑會出錯
+                                    //document.getElementById("img").src="{% static 'img/heatmap/OktRM.png' %}"
+                                }
+
+                                //plotpca
+                                if (data[6] == "no pca") {
+                                    $("#pca").empty();
+                                }
+                                else {
+                                    plotpca(data[6], data[3]);
+                                }
+                                //plotbar
+                                plotbar(data[2], data[3], data[4]);
+
+                                $.unblockUI(); //跑完後關掉
+                            },
+                            error: function () {
+                                console.log("error");
+                                $.unblockUI(); //Loading...跑完後關掉
+                            },
+                        });
+                    }
+                    else {
+                        $.ajax({
+                            url: 'Transcriptome/ajax_parse5/',
+                            data: { 'type': type, 'query': query, 'select_data_type': select_data_type },
+                            type: 'POST',
+                            dataType: 'json',
+                            success: function (data) {
+                                console.log(data);
+                                table_data = data;
+                                $("#expression_button").show();
+                                $("#mydiv2").show();
+                                $("#select_button").show();
+                                $("#select_data_type2").show();
+
+                                //plot_table
+                                $('#mydiv2').empty();
+                                $('#mydiv2').html("<table id='myDataTable2'  class='table table-hover dt-responsive order-columnmemberList tblFormat cell-border table-striped' ></table>");
+                                create_table(data[0], data[1]);
+                                //關閉ordering功能  
+                                $('#myDataTable2').DataTable({
+                                    "destroy": true,
+                                    "ordering": false,
+                                    "scrollX": true,
+                                })
+
+                                $('#checkall').click(function () {
+                                    //console.log("ok");
+                                    if ($('#checkall').prop("checked"))//如果全選按鈕有被選擇的話（被選擇是true）
+                                    {
+                                        //console.log("ok");
+                                        //$("input[name='ID']").prop("checked",true);//把所有的核取方框的property都變成勾選，若有第二頁，此方法會出問題
+                                        $('#myDataTable2').DataTable()
+                                            .column(0)
+                                            .nodes()
+                                            .to$()
+                                            .find('input[name=ID]')
+                                            .prop('checked', this.checked);//true
+                                    }
+                                    else {
+                                        //$("input[name='ID']").prop("checked",false);//把所有的核取方框的property都取消勾選，若有第二頁，此方法會出問題
+                                        $('#myDataTable2').DataTable()
+                                            .column(0)
+                                            .nodes()
+                                            .to$()
+                                            .find('input[name=ID]')
+                                            .prop('checked', false);
+                                    }
+                                });
+                                //plotheatmap
+                                plotheatmap(data[2], data[3], data[4]);
+
+                                //plotcluster
+                                if (data[5] == "no picture") {
+                                    document.getElementById("img").src = "";
+                                }
+                                else {
+                                    document.getElementById("img").src = "../../../t50504_static/img/heatmap/" + data[5] + ".png" //絕對路徑寫法，因為寫相對路徑會出錯
+                                    //document.getElementById("img").src="{% static 'img/heatmap/OktRM.png' %}"
+                                }
+
+                                //plotpca
+                                if (data[6] == "no pca") {
+                                    $("#pca").empty();
+                                }
+                                else {
+                                    plotpca(data[6], data[3]);
+                                }
+                                //plotbar
+                                plotbar(data[2], data[3], data[4]);
+
+                                $.unblockUI(); //跑完後關掉
+                            },
+                            error: function () {
+                                console.log("error");
+                                $.unblockUI(); //Loading...跑完後關掉
+                            },
+                        });
+                    }
+                }
+            });
+
+
+            $("#select_table").click(function () {
+                console.log("ok");
+                //不知道為什麼Ajax回傳的table_data會受下面的function或變數影響而改變，table_data資料中的"null"被改成了"-1"，所以這裡要在轉一次
+                for (var i = 0, l = table_data[4].length; i < l; i++) {
+                    for (var j = 0, k = table_data[4][i].length; j < k; j++) {
+                        if (table_data[4][i][j] == "-1") {
+                            table_data[4][i].splice(j, 1, 'null')
+                        }
+                    }
+                };
+
+                var checked_geneid2 = [];
+                var checked_header = [];
+                $("input[name = 'header']:checked").each(function (i) {
+                    var tmp = $(this).attr("id");
+                    checked_header.push(tmp);
+
+                });
+
+                //console.log(checked_header);
+                //console.log(checked_geneid2);
+                //plot_table
+                $('#mydiv2').empty();
+                $('#mydiv2').html("<table id='myDataTable2'  class='cell-border table-striped'></table>");
+
+                obj = select_table(table_data[0], table_data[1], checked_header);
+                var select_header_string = JSON.stringify(obj.select_header);
+                var select_geneid_string = JSON.stringify(table_data[3]);
+                var select_body_string = JSON.stringify(obj.select_body);
+                //console.log(select_header_string);
+                //console.log(select_geneid_string);
+                //console.log(select_body_string);
+                $.ajax({
+                    url: 'Transcriptome/ajax_parse6/',
+                    data: { 'select_header': select_header_string, 'select_geneid': select_geneid_string, 'select_body': select_body_string },
+                    type: 'POST',
+                    dataType: 'json',
+                    success: function (data) {
+                        //console.log(data);
+                        //plotheatmap
+                        plotheatmap(obj.select_header, table_data[3], obj.select_body);
+                        //plotcluster
+                        if (data[5] == "no picture") {
+                            document.getElementById("img").src = "";
+                        }
+                        else {
+                            document.getElementById("img").src = "../../../t50504_static/img/heatmap/" + data[0] + ".png" //絕對路徑寫法，因為寫相對路徑會出錯
+                            //document.getElementById("img").src="{% static 'img/heatmap/OktRM.png' %}"
+                        }
+
+                        //plotpca
+                        if (data[6] == "no pca") {
+                            $("#pca").empty();
+                        }
+                        else {
+                            plotpca(data[1], obj.select_geneid);
+                        }
+
+                        //plotbar
+                        plotbar(obj.select_header, table_data[3], obj.select_body);
+                    },
+                    error: function () {
+                        console.log("error");
+                    },
+                })
+
+            })
+
+            $("#reset_table").click(function () {
+
+                $.blockUI({
+                    css: {
+                        border: 'none',
+                        padding: '15px',
+                        backgroundColor: '#000',
+                        '-webkit-border-radius': '10px',
+                        '-moz-border-radius': '10px',
+                        opacity: .5,
+                        color: '#fff',
+                        message: "Loding..."
+                    }
+                });
+
+                //不知道為什麼Ajax回傳的table_data會受下面的function或變數影響而改變，table_data資料中的"null"被改成了"-1"，所以這裡要在轉一次
+                for (var i = 0, l = table_data[4].length; i < l; i++) {
+                    for (var j = 0, k = table_data[4][i].length; j < k; j++) {
+                        if (table_data[4][i][j] == "-1") {
+                            table_data[4][i].splice(j, 1, 'null')
+                        }
+                    }
+                };
+                //reset obj
+                obj = "";
+                //plot_table
+                $('#mydiv2').empty();
+                $('#mydiv2').html("<table id='myDataTable2'  class='cell-border table-striped'></table>");
+                create_table(table_data[0], table_data[1]);
+                //關閉ordering功能  
+                $('#myDataTable2').DataTable({
+                    "destroy": true,
+                    "ordering": false,
+                    "scrollX": true,
+                })
+
+                $('#checkall').click(function () {
+                    //console.log("ok");
+                    if ($('#checkall').prop("checked"))//如果全選按鈕有被選擇的話（被選擇是true）
+                    {
+                        //console.log("checkbox is checked");
+                        $("input[name='ID']").prop("checked", true);//把所有的核取方框的property都變成勾選
+                    }
+                    else {
+                        $("input[name='ID']").prop("checked", false);//把所有的核取方框的property都取消勾選
+                    }
+                });
+                //plotheatmap
+                plotheatmap(table_data[2], table_data[3], table_data[4]);
+
+                //plotcluster
+                if (table_data[5] == "no picture") {
+                    document.getElementById("img").src = "";
+                }
+                else {
+                    document.getElementById("img").src = "../../../t50504_static/img/heatmap/" + table_data[5] + ".png" //絕對路徑寫法，因為寫相對路徑會出錯
+                    //document.getElementById("img").src="{% static 'img/heatmap/OktRM.png' %}"
+                }
+
+                //plotpca
+                if (table_data[6] == "no pca") {
+                    $("#pca").empty();
+                }
+                else {
+                    plotpca(table_data[6], table_data[3]);
+                }
+
+                //plotbar
+                plotbar(table_data[2], table_data[3], table_data[4]);
+
+                $.unblockUI(); //跑完後關掉            
+            })
+
+
+            $("#plot_cluster").click(function () {
+                if ($("#colorbar").val() == "default") {
+                    var vmin = "default";
+                    var vmax = "default";
+                    var figsize = $("#figsize").val();
+                    var row_cluster = $("#row_cluster").val();
+                    var cbar_pos = $("#cbar_pos").val();
+                    var cmap = $("#cmap").val();
+                    console.log(obj);
+                    if (obj == "") {
+                        var cluster_body = table_data[4];
+                        var cluster_head = table_data[2];
+                        var cluster_geneid = table_data[3];
+                    }
+                    else {
+                        var cluster_body = obj.select_body;
+                        var cluster_head = obj.select_header;
+                        var cluster_geneid = table_data[3];
+                    }
+                    $.ajax({
+                        url: 'Transcriptome/ajax_parse4/',
+                        data: { 'cluster_body': JSON.stringify(cluster_body), 'cluster_head': JSON.stringify(cluster_head), 'cluster_geneid': JSON.stringify(cluster_geneid), 'vmin': vmin, 'vmax': vmax, 'figsize': figsize, 'row_cluster': row_cluster, 'cbar_pos': cbar_pos, 'cmap': cmap },
+                        type: 'POST',
+                        dataType: 'json',
+                        success: function (data) {
+                            console.log(data);
+
+                            //plotcluster
+                            if (data.pic_name == "no picture") {
+                                document.getElementById("img").src = "";
+                            }
+                            else {
+                                document.getElementById("img").src = "../../../t50504_static/img/heatmap/" + data.pic_name + ".png" //絕對路徑寫法，因為寫相對路徑會出錯
+                                //document.getElementById("img").src="{% static 'img/heatmap/OktRM.png' %}"
+                            }
+                        },
+                        error: function () {
+                            console.log("error");
+                        },
+                    })
+                }
+                else {
+                    var vmin = $("#vmin").val();
+                    var vmax = $("#vmax").val();
+                    var figsize = $("#figsize").val();
+                    var row_cluster = $("#row_cluster").val();
+                    var cbar_pos = $("#cbar_pos").val();
+                    var cmap = $("#cmap").val();
+                    if (vmax == "" || !(/(^[1-9]\d*$)/.test(vmax))) {
+                        alert("Please query a positive number");
+                    }
+                    else {
+                        console.log(obj);
+                        if (obj == "") {
+                            var cluster_body = table_data[4];
+                            var cluster_head = table_data[2];
+                            var cluster_geneid = table_data[3];
+                        }
+                        else {
+                            var cluster_body = obj.select_body;
+                            var cluster_head = obj.select_header;
+                            var cluster_geneid = table_data[3];
+                        }
+                        $.ajax({
+                            url: 'Transcriptome/ajax_parse4/',
+                            data: { 'cluster_body': JSON.stringify(cluster_body), 'cluster_head': JSON.stringify(cluster_head), 'cluster_geneid': JSON.stringify(cluster_geneid), 'vmin': vmin, 'vmax': vmax, 'figsize': figsize, 'row_cluster': row_cluster, 'cbar_pos': cbar_pos, 'cmap': cmap },
+                            type: 'POST',
+                            dataType: 'json',
+                            success: function (data) {
+                                console.log(data);
+
+                                //plotcluster
+                                if (data.pic_name == "no picture") {
+                                    document.getElementById("img").src = "";
+                                }
+                                else {
+                                    document.getElementById("img").src = "../../../t50504_static/img/heatmap/" + data.pic_name + ".png" //絕對路徑寫法，因為寫相對路徑會出錯
+                                    //document.getElementById("img").src="{% static 'img/heatmap/OktRM.png' %}"
+                                }
+                            },
+                            error: function () {
+                                console.log("error");
+                            },
+                        })
+                    }
+                }
+            })
+
+            $("#colorbar").change(function () {
+                if ($("#colorbar").val() == "default") {
+                    $("#vmin").attr("disabled", "false");
+                    $("#vmax").attr("disabled", "false");
+                }
+                else {
+                    $("#vmin").removeAttr('disabled');
+                    $("#vmax").removeAttr('disabled');
+                }
+            })
+
+            $("#GeneExpression").change(function () {
+                $("#resultlabel").hide();
+                $("#mydiv2").show();
+                $("#heatmap").hide();
+                $("#bar").hide();
+                $("#pca").hide();
+                $("#img_div").hide();
+                $("#ShowExpressionProfile").hide();
+                $("#select_data_type2").show();
+                $("#select_button").show();
+
+            })
+            $("#Heatmap").change(function () {
+                $("#resultlabel").hide();
+                $("#mydiv2").hide();
+                $("#heatmap").show();
+                $("#bar").hide();
+                $("#pca").hide();
+                $("#img_div").hide();
+                $("#ShowExpressionProfile").hide();
+                $("#select_data_type2").hide();
+                $("#select_button").hide();
+
+            })
+            $("#Expressionpattern").change(function () {
+                $("#resultlabel").hide();
+                $("#mydiv2").hide();
+                $("#heatmap").hide();
+                $("#bar").show();
+                $("#pca").hide();
+                $("#img_div").hide();
+                $("#ShowExpressionProfile").hide();
+                $("#select_data_type2").hide();
+                $("#select_button").hide();
+
+            })
+            $("#PCA").change(function () {
+                $("#resultlabel").hide();
+                $("#mydiv2").hide();
+                $("#heatmap").hide();
+                $("#bar").hide();
+                $("#pca").show();
+                $("#img_div").hide();
+                $("#ShowExpressionProfile").hide();
+                $("#select_data_type2").hide();
+                $("#select_button").hide();
+
+            })
+            $("#Cluster").change(function () {
+                $("#resultlabel").hide();
+                $("#mydiv2").hide();
+                $("#heatmap").hide();
+                $("#bar").hide();
+                $("#pca").hide();
+                $("#img_div").show();
+                $("#ShowExpressionProfile").hide();
+                $("#select_data_type2").hide();
+                $("#select_button").hide();
+
+            })
+
+            $("#example").click(function () {
+                if ($("#sequence_id").prop("checked")) {
+                    if ($("#select").val() == "Phalaenopsis") {
+                        document.getElementById('Query').value = 'Peq000001, Peq000002, Peq000003, Peq000004, Peq000005';
+                    }
+                    else if ($("#select").val() == "Dendrobium") {
+                        document.getElementById('Query').value = 'Dca000001, Dca000002, Dca000003, Dca000004, Dca000005';
+                    }
+                    else if ($("#select").val() == "Apostasia") {
+                        document.getElementById('Query').value = 'Ash000001, Ash000002, Ash000003, Ash000004, Ash000005';
+                    }
+                    else if ($("#select").val() == "Vshenzhenica") {
+                        document.getElementById('Query').value = 'Vsh000001, Vsh000002, Vsh000003, Vsh000004, Vsh000005';
+                    }
+                    else if ($("#select").val() == "Pguangdongensis") {
+                        document.getElementById('Query').value = 'Pgu000001, Pgu000002, Pgu000003, Pgu000004, Pgu000005';
+                    }
+                    else {
+                        document.getElementById('Query').value = 'Pzi000001, Pzi000002, Pzi000003, Pzi000004, Pzi000005';
+                    }
+
+                }
+                else {
+                    document.getElementById('Query').value = 'Major';
+                }
+            });
+
+            $("#clear").click(function () {
+                document.getElementById('Query').value = '';
+            });
+
+
+        })
+        function create_table(header, body) {
+            //$("#myDataTable").empty();
+            //console.log(inf);
+            var string = "";
+            //add header
+            string += "<thead><tr><th>" + header[0] + "</th><th>" + header[1] + "</th>";
+            for (var j = 2; j < header.length; j++) {
+                string += "<th><input type=checkbox id='" + header[j] + "' name=header >" + header[j] + "</th>";
+            }
+            string += "</tr></thead>";
+            $("#myDataTable2").append(string);
+
+            //add body
+            $("#myDataTable2").append("<tbody id=tb1>");
+            //console.log("ok");
+            //console.log(Object.keys(inf).length - 2);
+
+            for (var i = 0; i < body.length; i++) {
+                var string2 = "";
+                string2 += "<tr name ='tr" + i + "'>"
+                for (var k = 0, l = body[i].length; k < l; k++) {
+                    string2 += "<td>" + body[i][k] + "</td>";
+                }
+                string2 += "</tr>";
+
+                $("#myDataTable2").append(string2);
+            }
+            $("#myDataTable2").append("</tbody>");
+            $('#myDataTable2').DataTable();
+
+        }
+
+        function select_table(header, body, checkedheader) {
+
+            var header_dic = {};
+            var select_header = [];
+            var select_geneid = [];
+            var select_body = [];
+
+            for (var i = 0; i < header.length; i++) {
+                header_dic[header[i]] = i;
+            }
+
+
+            $("#myDataTable2").empty();
+            var string = "";
+            //add header
+            string += "<thead><tr><th>" + header[0] + "</th><th>" + header[1] + "</th>";
+            for (var j = 0; j < checkedheader.length; j++) {
+                string += "<th>" + header[header_dic[checkedheader[j]]] + "</th>";
+                select_header.push(checkedheader[j]);
+                //console.log(select_header);
+            }
+            string += "</tr></thead>";
+            $("#myDataTable2").append(string);
+            //console.log(string);
+            //add body
+            $("#myDataTable2").append("<tbody id=tb1>");
+
+            for (var i = 0; i < body.length; i++) {
+                var temp = [];
+                var string2 = "";
+                string2 += "<tr name ='tr" + i + "'>" + "<td>" + body[i][0] + "</td><td>" + body[i][1] + "</td>";
+                for (var j = 0; j < checkedheader.length; j++) {
+                    string2 += "<td>" + body[i][header_dic[checkedheader[j]]] + "</td>";
+                    temp.push(body[i][header_dic[checkedheader[j]]]);
+                }
+                string2 += "</tr>";
+                //console.log(string2);
+                $("#myDataTable2").append(string2);
+                //console.log(string2);
+                select_body.push(temp);
+            }
+            $("#myDataTable2").append("</tbody>");
+            //console.log($("#myDataTable2").html());
+            $('#myDataTable2').DataTable();
+            //console.log(data);
+            //console.log(select_header);
+            //console.log(select_geneid);
+            //console.log(select_body);
+            return { 'select_header': select_header, 'select_body': select_body };
+        }
+
+        function plotheatmap(header, id, body) {
+            var xValues = header;
+            var yValues = id.reverse();
+            var zValues = body.reverse();
+
+            var data = [
+                {
+                    z: zValues,
+                    x: xValues,
+                    y: yValues,
+                    colorscale: 'Hot',
+                    type: 'heatmap',
+                    "reversescale": true,//顏色反向
+                }
+            ];
+
+            var layout = {
+                title: {
+                    text: 'Heatmap'
+
+                },
+                annotations: [],
+                xaxis: {
+                    ticks: '',
+                    side: 'top'
+                }
+            }
+
+            for (var i = 0; i < yValues.length; i++) {
+                for (var j = 0; j < xValues.length; j++) {
+                    var currentValue = zValues[i][j];
+                    if (currentValue > 200.0) {
+                        var textColor = 'white';
+                    } else {
+                        var textColor = 'black';
+                    }
+                    var result = {
+                        xref: 'x1',
+                        yref: 'y1',
+                        x: xValues[j],
+                        y: yValues[i],
+                        text: zValues[i][j],
+                        font: {
+                            family: 'Arial',
+                            size: 12,
+                            color: 'rgb(50, 171, 96)'
+                        },
+                        showarrow: false,
+                        font: {
+                            color: textColor
+                        }
+                    };
+                    layout.annotations.push(result);
+                }
+            }
+
+
+
+            Plotly.newPlot('heatmap', data, layout);
+        }
+
+        function plotheatmap3(header, id, body) {
+            var xValues = header;
+            var yValues = id.reverse();
+            var zValues = body.reverse();
+
+            var data = [
+                {
+                    z: zValues,
+                    x: xValues,
+                    y: yValues,
+                    colorscale: 'Hot',
+                    type: 'heatmap',
+                    "reversescale": true,//顏色反向
+                }
+            ];
+
+            var layout = {
+                title: {
+                    text: 'Heatmap'
+
+                },
+                annotations: [],
+                xaxis: {
+                    ticks: '',
+                    side: 'top'
+                }
+            }
+
+            for (var i = 0; i < yValues.length; i++) {
+                for (var j = 0; j < xValues.length; j++) {
+                    var currentValue = zValues[i][j];
+                    if (currentValue > 200.0) {
+                        var textColor = 'white';
+                    } else {
+                        var textColor = 'black';
+                    }
+                    var result = {
+                        xref: 'x1',
+                        yref: 'y1',
+                        x: xValues[j],
+                        y: yValues[i],
+                        text: zValues[i][j],
+                        font: {
+                            family: 'Arial',
+                            size: 12,
+                            color: 'rgb(50, 171, 96)'
+                        },
+                        showarrow: false,
+                        font: {
+                            color: textColor
+                        }
+                    };
+                    layout.annotations.push(result);
+                }
+            }
+
+
+
+            Plotly.newPlot('heatmap3', data, layout);
+        }
+
+        function plotpca(pca_list, geneid) {
+
+            var listx = [];
+            var listy = [];
+            var textlist = geneid;
+
+            for (var i = 0; i < Object.keys(pca_list).length; i++) {
+                listx.push(pca_list[i][0]);
+                listy.push(pca_list[i][1]);
+            }
+
+            var trace1 = {
+                x: listx,
+                y: listy,
+                //x: [1, 2, 3, 4],
+                //y: [10, 15, 13, 17],
+                mode: 'markers',
+                type: 'scatter',
+                text: textlist
+            };
+
+            var data = [trace1];
+
+            Plotly.newPlot('pca', data);
+        }
+
+        function plotbar(header, geneid, body) {
+            var data = [];
+            //var k = 'trace';
+            for (var i = 0, l = Object.keys(body).length; i < l; i++) {
+                for (var j = 0, k = body[i].length; j < k; j++) {
+                    if (body[i][j] == "null") {
+                        body[i].splice(j, 1, '-1');
+                    };
+                };
+                //console.log(inf[i + 2]);
+                window['trace' + i] = {
+                    x: header,
+                    y: body[i],
+                    name: geneid[i],
+                    type: 'bar'
+                };
+                data.push(window['trace' + i]);
+            }
+            //console.log(data);
+
+
+            var layout = {
+                yaxis: { title: 'FPKM' },
+                barmode: 'group'
+            };
+
+            Plotly.newPlot('bar', data, layout);
+        }
+
+    </script>
+
+</head>
+{% endblock %}
+
+{% block form %}
+
+<body>
+    <form id="form1" runat="server">
+        <div id="contain" style="margin: 0 auto;width: 800px">
+            <header id="mainHeader">
+                <img src="{% static 'img/banner.jpg'%}" alt="Banner" />
+            </header>
+        </div>
+        <a href="#" onclick="javascript:history.back();" style="font-size:larger">back</a><br>
+        <div style="width:100%" class="ui container" id="no_id_condition">
+            <div id="content" class="ui blue tertiary inverted segment">
+                <div class="ui blue inverted segment header block">
+                    <font size="5">Whole Gene Expression</font>
+                </div>
+                <div class="ui segment">
+                    <table>
+                        <tr>
+                            <td bgcolor="#0066FF" class="style5" style="color: #FFFFFF" id="select_library1">Select
+                                Library</td>
+                            <td class="style6" id="select_library2">
+                                <select id="select">
+                                    <option value="Phalaenopsis">Phalaenopsis</option>
+                                    <option value="Dendrobium">Dendrobium</option>
+                                    <option value="Apostasia">Apostasia</option>
+                                    <option value="Vshenzhenica">Vshenzhenica</option>
+                                    <option value="Pguangdongensis">Pguangdongensis</option>
+                                    <option value="Pzijinensis">Pzijinensis</option>
+                                </select>
+                            </td>
+                            <td bgcolor="#0066FF" class="auto-style2" style="color: #FFFFFF">
+                                Select data type
+                            </td>
+                            <td>
+                                <select id="select_data_type">
+                                    <option value="contig">contig</option>
+                                    <option value="TPM">TPM</option>
+                                    <option value="FPKM">FPKM</option>
+                                </select>
+                            </td>
+                            <!--<td bgcolor="#0066FF" class="style7" style="color: #FFFFFF" id="query_name1">
+                                <span lang="zh-tw">Query Name:</span>
+                            </td>
+                            <td id="query_name2">
+                                <input id="Query" type="text" name="Query">
+                            </td>-->
+                        </tr>
+
+                        <tr>
+                            <td class="auto-style1">
+                                <input type="button" value="View/Search" id="View" class="btn btn-primary">
+                            </td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                    </table><br>
+
+                    <div id="mydiv">
+
+                    </div>
+                </div>
+            </div>
+            <div class="ui blue tertiary inverted segment">
+                <div class="ui blue inverted segment header block">
+                    <font size="5">Search by Sequence ID or Key Word</font>
+                </div>
+                <div class="ui segment">
+                    <div style="width: 700px">
+                        Please Query Sequence ID or Key Word:
+                        <input id="clear" type="button" value="Clear" class="btn btn-primary" style="float:right">
+                        <input id="example" type="button" value="Example" class="btn btn-primary" style="float:right">
+                        <br>
+                        <textarea id="Query" name="Query" rows="10" cols="100"></textarea><br>
+                        <div id="search_tool" class="search-options">
+                            <label><input id="sequence_id" type="radio" name="search_tool" value="sequence_id"
+                                    checked="true">Sequence ID</label>
+                            <!--label用來包元素-->
+                            <label><input id="key_word" type="radio" name="search_tool" value="key_word"
+                                    style="margin-left: 10px">Key Word</label><br>
+                            <input type="button" value="View/Search" id="View2" class="btn btn-primary">
+                        </div>
+                    </div>
+                </div>
+                <div class="ui segment">
+                    Result:<br>
+                    <div id='expression_button' style='display: none;' class="btn-group btn-group-toggle"
+                        data-toggle="buttons">
+                        <label class="btn btn-secondary active">
+                            <input type="radio" name="options" id="GeneExpression" autocomplete="off" checked> Gene
+                            expression
+                        </label>
+                        <label class="btn btn-secondary active">
+                            <input type="radio" name="options" id="Heatmap" autocomplete="off" checked> Heatmap
+                        </label>
+                        <label class="btn btn-secondary active">
+                            <input type="radio" name="options" id="Expressionpattern" autocomplete="off" checked>
+                            Expression pattern
+                        </label>
+                        <label class="btn btn-secondary active">
+                            <input type="radio" name="options" id="PCA" autocomplete="off" checked> PCA
+                        </label>
+                        <label class="btn btn-secondary active">
+                            <input type="radio" name="options" id="Cluster" autocomplete="off" checked> Cluster
+                        </label>
+                    </div>
+                    <div>
+                        <select id="select_data_type2" style='display: none;'>
+                            <option id="raw_data">contig</option>
+                            <option id="TPM">TPM</option>
+                            <option id="FPKM">FPKM</option>
+                        </select>
+                    </div>
+                    <div id="resultlabel"></div>
+                    <div id="mydiv2" style='display: none;'></div>
+                    <div id="select_button" class="btn-group" style='display: none;'>
+                        <button type="button" id="select_table" class="btn btn-primary">select</button>
+                        <button type="button" id="reset_table" class="btn btn-primary">reset</button>
+                    </div>
+                    <div id="heatmap" style='display: none; height: 1000px;width: 1000px;'></div>
+                    <div id="pca" style='display: none;height: 1000px;width: 1000px;'></div>
+                    <div id="bar" style='display: none;height: 1000px;width: 1000px;'></div>
+                    <div id="img_div" style='display: none;'>
+                        <table class="style7">
+                            <tr>
+                                <td bgcolor="#99CCFF" class="style1">colorbar length value:</td>
+                                <td bgcolor="#99CCFF" class="style1">min value :</td>
+                                <td bgcolor="#99CCFF" class="style1">max value:</td>
+                                <td bgcolor="#99CCFF" class="style1">figure size:</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <select id="colorbar">
+                                        <option checked="checked" value="default">default</option>
+                                        <option value="select value">select value</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <select id="vmin" disabled="false">
+                                        <option value="0">0</option>
+                                        <option value="-10">-10</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <input type="text" name="vmax" id="vmax" disabled="false">
+                                </td>
+                                <!--<td>
+                                <select id="vmax" disabled="false">
+                                <option value="10">10</option>
+                                <option value="20">20</option>
+                                <option value="100">100</option>                        
+                                </select>
+                            </td>-->
+                                <td>
+                                    <select id="figsize">
+                                        <option checked="checked" value="(10, 10)">(10, 10)</option>
+                                        <option value="(7,5)">(7,5)</option>
+                                        <option value="(2,1)">(2,1)</option>
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td bgcolor="#99CCFF" class="style1">row cluster:</td>
+                                <td bgcolor="#99CCFF" class="style1">colorbar position:</td>
+                                <td bgcolor="#99CCFF" class="style1">color map:</td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <select id="row_cluster">
+                                        <option checked="checked" value="True">True</option>
+                                        <option value="False">False</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <select id="cbar_pos">
+                                        <option checked="checked" value="(0.02, 0.8, 0.05, 0.18)">(0.02, 0.8, 0.05,
+                                            0.18)</option>
+                                        <option value="(0, .2, .03, .4)">(0, .2, .03, .4)</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <select id="cmap">
+                                        <!--<option value="default">default</option>-->
+                                        <option checked="checked" value="mako">mako</option>
+                                        <option value="vlag">vlag</option>
+                                        <option value="hot">hot</option>
+                                        <option value="Greens">Greens</option>
+                                        <option value="YlGnBu">YlGnBu</option>
+                                        <option value="Purples">Purples</option>
+                                        <option value="Greys">Greys</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <input type="button" id="plot_cluster" class="btn btn-primary" value="Plot Cluster"
+                                        Height="34px" Width="81px">
+                                </td>
+                            </tr>
+                        </table>
+                        <img src="" id="img" />
+                    </div>
+                </div>
+            </div>
+            <footer id="footer" />
+        </div>
+        <div id="id_condition">
+            <table>
+                <tr>
+                    <td bgcolor="#0066FF" class="auto-style2" style="color: #FFFFFF">
+                        Select data type
+                    </td>
+                    <td>
+                        <select id="select_data_type3">
+                            <option value="contig">contig</option>
+                            <option value="TPM">TPM</option>
+                            <option value="FPKM">FPKM</option>
+                        </select>
+                    </td>
+                    <td class="auto-style1">
+                        <input type="button" value="View/Search" id="View3">
+                    </td>
+                </tr>
+            </table><br>
+
+
+            <div id="mydiv3">
+
+            </div>
+            <div id="heatmap3" style="height: 800px;width: 1100px">
+
+            </div>
+        </div>
+    </form>
+</body>
+
+{% endblock %}

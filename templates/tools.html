@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+
+
+{% block script_var %}
+<!-- jquery -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+<style type="text/css">
+    .color {
+        background: #337ab7;
+    }
+</style>
+<script type="text/javascript">
+    $(document).ready(function () {
+        $("a[name='species']").css("color", "green");
+    });
+
+</script>
+{% endblock %}
+
+
+{% block form %}
+<form id="form1" runat="server">
+    <div id="container" style="margin: 0 auto;width: 1000px">
+        <img src="{% static 'img/banner.jpg' %}" alt="Banner" />
+        <header id="mainHeader"></header>
+        <h1>Tools</h1><br><br><br>
+        <div>
+            <font size="5"> Genome (OrchidBase 6.0)<span style="color: red"> New!!</span> </font>
+            <table class="ui celled structured blue table">
+                <thead>
+                    <tr>
+                        <th style="width: 400px">
+                            <font size="5">Tools</font>
+                        </th>
+                        <th>
+                            <font size="5">Species</font>
+                        </th>
+                    <tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td rowspan="9">
+                            <font size="5">Nucleotide BLAST (blastn,tblastx,tblastn)</font>
+                        </td>
+                        <td><a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/expression_profiling/BLAST_SCA/?type=Phalaenopsis"
+                                id="Nucleotide_Peq">
+                                <font size="5"><I>Phalaenopsis equestris</I></font>
+                            </a></td>
+                    </tr>
+                    <tr>
+                        <td><a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/expression_profiling/BLAST_SCA/?type=Dendrobium"
+                                id="Nucleotide_Dca">
+                                <font size="5"><I>Dendrobium catenatum</I></font>
+                            </a></td>
+                    </tr>
+                    <tr>
+                        <td><a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/expression_profiling/BLAST_SCA/?type=Apostasia"
+                                id="Nucleotide_Ash">
+                                <font size="5"><I>Apostasia shenzhenica</I></font>
+                            </a></td>
+                    </tr>
+                    <tr>
+                        <td><a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/expression_profiling/BLAST_SCA/?type=Vpompona"
+                                id="Nucleotide_Vpo">
+                                <font size="5"><I>Vanilla pompona</I></font>
+                            </a></td>
+                    </tr>
+                    <tr>
+                        <td><a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/expression_profiling/BLAST_SCA/?type=Vshenzhenica"
+                                id="Nucleotide_Vsh">
+                                <font size="5"><I>Vanilla shenzhenica</I></font>
+                            </a></td>
+                    </tr>
+                    <tr>
+                        <td><a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/expression_profiling/BLAST_SCA/?type=Pguangdongensis"
+                                id="Nucleotide_Pgu">
+                                <font size="5"><I>Platanthera guangdongensis</I></font>
+                            </a></td>
+                    </tr>
+                    <tr>
+                        <td><a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/expression_profiling/BLAST_SCA/?type=Pzijinensis"
+                                id="Nucleotide_Pzi">
+                                <font size="5"><I>Platanthera zijinensis</I></font>
+                            </a></td>
+                    </tr>
+                    <tr>
+                        <td><a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/expression_profiling/BLAST_SCA/?type=Ldiscolor"
+                                id="Nucleotide_Ldi">
+                                <font size="5"><I>Ludisia discolor</I></font>
+                            </a></td>
+                    </tr>
+                    <tr>
+                        <td><a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/expression_profiling/BLAST_SCA/?type=all_species"
+                                id="Nucleotide_all_species">
+                                <font size="5"><I>All species</I></font>
+                            </a></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <br>
+        <div>
+            <table class="ui celled structured blue table">
+                <thead>
+                    <tr>
+                        <th style="width: 400px">
+                            <font size="5">Tools</font>
+                        </th>
+                        <th>
+                            <font size="5">Species</font>
+                        </th>
+                    <tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td rowspan="9">
+                            <font size="5">Protein BLAST (blastp,blastx)</font>
+                        </td>
+                        <td><a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/expression_profiling/BLAST_PEP/?type=Phalaenopsis"
+                                id="Protein_Peq">
+                                <font size="5"><I>Phalaenopsis equestris</I></font>
+                            </a></td>
+                    </tr>
+                    <tr>
+                        <td><a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/expression_profiling/BLAST_PEP/?type=Dendrobium"
+                                id="Protein_Dca">
+                                <font size="5"><I>Dendrobium catenatum</I></font>
+                            </a></td>
+                    </tr>
+                    <tr>
+                        <td><a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/expression_profiling/BLAST_PEP/?type=Apostasia"
+                                id="Protein_Ash">
+                                <font size="5"><I>Apostasia shenzhenica</I></font>
+                            </a></td>
+                    </tr>
+                    <tr>
+                        <td><a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/expression_profiling/BLAST_PEP/?type=Vpompona"
+                                id="Protein_Vpo">
+                                <font size="5"><I>Vanilla pompona</I></font>
+                            </a></td>
+                    </tr>
+                    <tr>
+                        <td><a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/expression_profiling/BLAST_PEP/?type=Vshenzhenica"
+                                id="Protein_Vsh">
+                                <font size="5"><I>Vanilla shenzhenica</I></font>
+                            </a></td>
+                    </tr>
+                    <tr>
+                        <td><a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/expression_profiling/BLAST_PEP/?type=Pguangdongensis"
+                                id="Protein_Pgu">
+                                <font size="5"><I>Platanthera guangdongensis</I></font>
+                            </a></td>
+                    </tr>
+                    <tr>
+                        <td><a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/expression_profiling/BLAST_PEP/?type=Pzijinensis"
+                                id="Protein_Pzi">
+                                <font size="5"><I>Platanthera zijinensis</I></font>
+                            </a></td>
+                    </tr>
+                    <tr>
+                        <td><a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/expression_profiling/BLAST_PEP/?type=Ldiscolor"
+                                id="Protein_Pzi">
+                                <font size="5"><I>Ludisia discolor</I></font>
+                            </a></td>
+                    </tr>
+                    <tr>
+                        <td><a href="http://cosbi.ee.ncku.edu.tw/orchidbase6/expression_profiling/BLAST_PEP/?type=all_species"
+                                id="Protein_all_species">
+                                <font size="5"><I>All species</I></font>
+                            </a></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <br>
+        <div>
+            <table class="ui celled structured blue table">
+                <thead>
+                    <tr>
+                        <th style="width: 400px">
+                            <font size="5">Tools</font>
+                        </th>
+                        <th>
+                            <font size="5">Species</font>
+                        </th>
+                    <tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td rowspan="9">
+                            <font size="5">Domain Search(InterProScan or Pfam)<span style="color: red"> New!!</span>
+                            </font>
+                        </td>
+                        <td><a href="https://cosbi.ee.ncku.edu.tw/orchidbase6/pfam/?type=Phalaenopsis" id="domain_Peq">
+                                <font size="5"><I>Phalaenopsis equestris</I></font>
+                            </a></td>
+                    </tr>
+                    <tr>
+                        <td><a href="https://cosbi.ee.ncku.edu.tw/orchidbase6/pfam/?type=Dendrobium" id="domain_Dca">
+                                <font size="5"><I>Dendrobium catenatum</I></font>
+                            </a></td>
+                    </tr>
+                    <tr>
+                        <td><a href="https://cosbi.ee.ncku.edu.tw/orchidbase6/pfam/?type=Apostasia" id="domain_Ash">
+                                <font size="5"><I>Apostasia shenzhenica</I></font>
+                            </a></td>
+                    </tr>
+                    <tr>
+                        <td><a href="https://cosbi.ee.ncku.edu.tw/orchidbase6/pfam/?type=Vpompona" id="domain_Vpo">
+                                <font size="5"><I>Vanilla pompona</I></font>
+                            </a></td>
+                    </tr>
+                    <tr>
+                        <td><a href="https://cosbi.ee.ncku.edu.tw/orchidbase6/pfam/?type=Vshenzhenica" id="domain_Vsh">
+                                <font size="5"><I>Vanilla shenzhenica</I></font>
+                            </a></td>
+                    </tr>
+                    <tr>
+                        <td><a href="https://cosbi.ee.ncku.edu.tw/orchidbase6/pfam/?type=Pguangdongensis"
+                                id="domain_Pgu">
+                                <font size="5"><I>Platanthera guangdongensis</I></font>
+                            </a></td>
+                    </tr>
+                    <tr>
+                        <td><a href="https://cosbi.ee.ncku.edu.tw/orchidbase6/pfam/?type=Pzijinensis" id="domain_Pzi">
+                                <font size="5"><I>Platanthera zijinensis</I></font>
+                            </a></td>
+                    </tr>
+                    <tr>
+                        <td><a href="https://cosbi.ee.ncku.edu.tw/orchidbase6/pfam/?type=Ldiscolor" id="domain_Pzi">
+                                <font size="5"><I>Ludisia discolor</I></font>
+                            </a></td>
+                    </tr>
+                    <tr>
+                        <td><a href="https://cosbi.ee.ncku.edu.tw/orchidbase6/pfam/?type=all_species"
+                                id="domain_all_species">
+                                <font size="5"><I>All species</I></font>
+                            </a></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <br>
+        <div>
+            <font size="5">Transcriptome (OrchidBase 2.0)</font>
+            <table class="ui celled structured blue table">
+                <thead>
+                    <tr>
+                        <th style="width: 500px">
+                            <font size="5">Tools(Next-generation sequencing)</font>
+                        </th>
+                        <th></th>
+                    <tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <font size="5">BLAST</font>
+                        </td>
+                        <td><a href="http://orchidbase.itps.ncku.edu.tw/est/WebBLAST_OF.aspx" id="blast2">
+                                <font size="5"><I>Orchidaceae Floral Transcriptome</I></font>
+                            </a></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <font size="5">Protein-protein interaction prediction</font>
+                        </td>
+                        <td><a href="http://orchidbase.itps.ncku.edu.tw/est/OcPINOF.aspx" id="PPI2">
+                                <font size="5"><I>Orchidaceae Floral Transcriptome</I></font>
+                            </a></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <font size="5">Gene network prediction</font>
+                        </td>
+                        <td><a href="http://orchidbase.itps.ncku.edu.tw/est/OrchidBasePIN_OF.aspx" id=" GNP2">
+                                <font size="5"><I>Orchidaceae Floral Transcriptome</I></font>
+                            </a></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <br>
+        <div>
+            <font size="5">Transcriptome (OrchidBase 1.0)</font>
+            <table class="ui celled structured blue table">
+                <thead>
+                    <tr>
+                        <th style="width: 500px">
+                            <font size="5">Tools(Sanger sequencing)</font>
+                        </th>
+                        <th>
+                            <font size="5">Species</font>
+                        </th>
+                    <tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <font size="5">BLAST</font>
+                        </td>
+                        <td><a href="http://orchidbase.itps.ncku.edu.tw/est/WebBLAST_PL.aspx" id="blast1">
+                                <font size="5"><I>Phalaenopsis equestris</I></font>
+                            </a></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <font size="5">Protein-protein interaction prediction</font>
+                        </td>
+                        <td><a href="http://orchidbase.itps.ncku.edu.tw/est/OcPIN.aspx" id=" PPI1">
+                                <font size="5"><I>Phalaenopsis equestris</I></font>
+                            </a></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <font size="5">Gene network prediction</font>
+                        </td>
+                        <td><a href="http://orchidbase.itps.ncku.edu.tw/est/OrchidBasePIN_P.aspx" id="GNP1">
+                                <font size="5"><I>Phalaenopsis equestris</I></font>
+                            </a></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <footer id="footer"></footer>
+</form>
+{% endblock %}

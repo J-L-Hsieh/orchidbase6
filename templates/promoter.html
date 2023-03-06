@@ -1,0 +1,636 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+{% block script_var %}
+
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.22/css/jquery.dataTables.css">
+
+    <script type="text/javascript" charset="utf8"
+        src="https://cdn.datatables.net/1.10.22/js/jquery.dataTables.js"></script>
+    <script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
+    <!--畫圖用-->
+    <link rel="stylesheet" type="text/css" href="{% static 'css/superfish.css' %}" media="screen">
+    <!--<link rel="stylesheet" type="text/css" href="{% static 'css/Style.css' %}">-->
+    <!--需要此css置中用-->
+    <!--畫圖用-->
+    <script type="text/javascript" src="https://d3js.org/d3.v4.min.js"></script>
+    <script type="text/javascript" src="{% static 'js/d3-v4-contextmenu.js' %}"></script>
+    <!--bootstrap和tooltip-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>
+    <script src="https://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+    <link rel="stylesheet"
+        href="https://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css">
+    <!--qtip2-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qtip2/3.0.3/jquery.qtip.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/qtip2/3.0.3/jquery.qtip.min.css" rel="stylesheet" />
+    <!-- semanticUI -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
+    <link rel="stylesheet" type="text/css"
+        href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css">
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('.ui.dropdown').dropdown({ on: 'hover' });
+        });
+    </script>
+    <script src="{% static 'js/jquery.blockUI.js' %}"></script>
+    <!--讀取中-->
+    <style type="text/css">
+        .tooltip-inner {
+            min-width: 100px;
+            /*max-width: 100%;*/
+            max-width: none;
+        }
+
+        .qtip {
+            max-width: none !important;
+        }
+
+        .color {
+            color: #fff;
+            background: #337ab7;
+        }
+    </style>
+    <script type='text/javascript'>
+        $(document).ready(function () {
+            $.ajaxSetup({
+                data: {
+                    csrfmiddlewaretoken: '{{ csrf_token  }}'
+                },
+            });
+            $.blockUI({
+                css: {
+                    border: 'none',
+                    padding: '15px',
+                    backgroundColor: '#000',
+                    '-webkit-border-radius': '10px',
+                    '-moz-border-radius': '10px',
+                    opacity: .5,
+                    color: '#fff',
+                    message: "Loding..."
+                }
+            });
+
+            var select_data = $("#select option:selected").val();
+            var select_data_type = $("#select_data_type").val();
+            var href = window.location.href; //"http://cosbi.ee.ncku.edu.tw/t50504_project/promoter/?species=ath?type=Phalaenopsis?id=Peq000001"
+            //console.log(href);
+            var ID = href.split("=")[3];//Peq000001
+            var type = href.split("=")[2].split("?")[0];//Phalaenopsis 
+            var species = href.split("=")[1].split("?")[0];//ath
+            var species_dic = { "ath": "Arabidopsis thaliana", "osa": "Oryza sativa" }
+            $.ajax({
+                url: '/orchidbase6/promoter/sequence_result/',
+                data: { 'species': species, 'type': type, 'ID': ID },
+                type: 'POST',
+                dataType: 'json',
+                async: false,
+                success: function (data) {
+                    //console.log(data.data_list);
+                    $("#pattern").html(data.family_list);
+                    $("#pattern").append(data.data_list)
+                    //$("#sequence_data").html(data.seq_data);
+                    //$("#num").html(data.num_data);
+                    $("#promoter_header").html("Sequence name:" + ID + "<br>species:" + species_dic[species] + "<br>The optional promoter elements:")
+                    $("#header").html("Promoter Analysis Results of " + ID);
+                    //var first_checkbox = $("#pattern").find("table tbody tr td input").get(0);
+                    //console.log(data.first_checkbox);//Peq015518
+                    $.unblockUI(); //Loading...跑完後關掉
+
+                    //transcription factor checkbox click事件
+                    var val = [];
+                    $("input[name='checkbox']").each(function () {
+
+                        var temp_value = $(this).val();
+                        // console.log(temp_value);
+                        $(this).click(function (e) {
+                            if ($("input[name='checkbox']:checked").length > 10) {
+                                //console.log($("input[name='test']:checked").length);
+                                alert("Please select the checkbox Less than or equal to 10.");
+                                e.preventDefault();
+                            }
+                            else {
+                                console.log(temp_value);
+                                //console.log("tf_click_1time");
+                                if ($(this).prop("checked") == true) {
+                                    console.log("add_val");
+                                    console.log($(this).attr("id"));
+                                    //動態加入隨機color到value中                      
+                                    var colorStr = random_color();
+                                    $(this).val(temp_value + ":" + colorStr);
+                                    //checkbox選取後將資訊加到val
+                                    val.push($(this).val());
+                                    //name_color
+                                    var name_color_str = "<br>";
+                                    //var color_list=[];
+                                    for (i = 0; i < val.length; i++) {
+                                        name_color_str += val[i].split(":")[0] + ": <span style='background-color:" + val[i].split(":")[5] + "'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&nbsp;&nbsp;&nbsp;";
+                                        //color_list.push(val[i].split(":")[5]);
+                                    }
+                                    $("#name_color").html(name_color_str);
+                                    $("#name_color2").html(name_color_str);
+                                    $("#name_color3").html(name_color_str);
+                                    $("#tab_" + $(this).attr("id")).show();
+                                    //console.log(val);
+
+                                }
+                                else {
+                                    console.log("remove_val");
+                                    //checkbox取消後val也移除資訊
+                                    var temp_index = val.indexOf($(this).val()); // 2
+                                    val.splice(temp_index, 1);
+                                    //將隨機的color移除  
+                                    $(this).val(temp_value);
+                                    //name_color
+                                    var name_color_str = "<br>";
+                                    var color_list = [];
+                                    for (i = 0; i < val.length; i++) {
+                                        name_color_str += val[i].split(":")[0] + ": <span style='background-color:" + val[i].split(":")[5] + "'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&nbsp;&nbsp;&nbsp;";
+                                        //color_list.push(val[i].split(":")[5]);
+                                    }
+                                    $("#name_color").html(name_color_str);
+                                    $("#name_color2").html(name_color_str);
+                                    $("#name_color3").html(name_color_str);
+                                    $("#tab_" + $(this).attr("id")).hide();
+                                    //console.log(val);
+
+                                }
+                            }
+                            console.log(val);
+                            //console.log(color_list);//["#19b622", "#e1997b"]
+                            //console.log(ID);
+                            $.ajax({
+                                url: '/orchidbase6/promoter/click_result/',
+                                data: { 'val': JSON.stringify(val), 'species': species, 'type': type, 'ID': ID },
+                                type: 'POST',
+                                dataType: 'json',
+                                async: false,//jq雙層ajax嵌套解決技巧 https://zhuanlan.zhihu.com/p/117426594
+                                success: function (data2) {
+                                    console.log(data2);
+                                    /*if (data2.seq_data == ""){
+                                        $("#sequence_data").html(data.seq_data);
+    
+                                    }
+                                    else{
+                                        $("#sequence_data").html(data2.seq_data);
+                                    }*/
+
+                                    //$("#num").html(data.num_data);
+                                    d3.select("#visualization").remove();
+                                    $("#visualization").remove();
+                                    $("#out_visualization").append("<div id='visualization' class='ui segment'></div>");
+                                    plot_visualization(data2.record_level_pos, data2.record_level_neg);
+
+                                    d3.select("#sequence").remove();
+                                    $("#sequence").remove();
+                                    $("#out_sequence").append("<div id='sequence' class='ui segment'></div>");
+                                    plot_sequence(data2.seq_data_pos, data2.seq_data_neg, data2.divider, data2.seq_level_pos, data2.seq_level_neg);
+                                },
+                                error: function () {
+                                    console.log("error");
+                                },
+                            });
+                        })
+
+                    });//click事件end
+                    console.log(data.first_checkbox)
+                    $("#" + data.first_checkbox).click();//要寫在$("input[name='test']").each...function之後，才能觸發第一個checkbox點擊事件
+                    $("a[name='family']").each(function () {
+                        $(this).click(function () {
+                            //點擊變色
+                            $("a[name='family']").removeClass("color");
+                            $(this).addClass("color");
+
+                            //Family標題改變
+                            $("#Family").html("Family: " + $(this).text());
+
+                            //展開
+                            var temp_id = $(this).attr("value");
+                            //console.log(temp_id);
+                            $("div[name='family_id']").hide();//先將所有family的transcription factor資訊藏起來
+                            $("input[name='checkbox']").each(function () {
+                                if ($(this).prop("checked") == true) {//先將所有的TF的checkbox取消勾選
+                                    console.log($(this).val());
+                                    var query_id = $(this).attr("id").replace(".", "")
+                                    console.log(query_id)
+                                    $("#" + query_id).click();
+                                    //$(this).prop("checked",false);
+                                    console.log($(this).prop("checked"));
+                                }
+                            });
+                            console.log(temp_id)
+                            $("#" + temp_id).toggle();//將當前點選的family的transcription factor資訊顯示出來
+                            var first_checkbox = $("#" + temp_id + "> table > tbody > tr:eq(0)").find("td:eq(0)").text(); //將當前點選的family的第一筆transcription factor打勾:第一個tr第一個td
+                            $("#" + first_checkbox).click();
+                        })
+                    })
+
+                },
+                error: function () {
+                    console.log("error");
+                    $.unblockUI(); //Loading...跑完後關掉
+                },
+            });
+
+            /*$("#btn").tooltip({
+                title: "123",
+                //title:"Lorem ipsum dolor sit amet, consectetur adipisicing elit ,this is a test sentence.",  
+                html: true,
+                //template:'<div class="tooltip tooltip-custom"><div class="title">Test</div><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>'
+
+            });*/
+
+            //自行設定屬性data-toggle
+            $('.tooltip-demo.well').tooltip({
+                selector: "a[rel=tooltip]"
+            })
+
+        })
+
+        function random_color() {
+            var randomArr = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'];
+
+            //產生一個六位的字串
+            var colorStr = "#";
+            for (var i = 0; i < 6; i++) {
+                //15是範圍上限，0是範圍下限，兩個函式保證產生出來的隨機數是整數
+                colorStr += randomArr[Math.ceil(Math.random() * 15)];
+            };
+
+
+            return colorStr
+        }
+
+        function plot_visualization(record_level_pos, record_level_neg) {//record_level_pos={1: [[306, 313, "#41fc53", "<table border='2'><tr><th>Matrix ID</th><th>Positi…],[]], 2: [306, 313, "#9f64a9", "<table border='2'><tr><th>Matrix ID</th><th>Positi…]} 
+            var svg = d3.select("#visualization").append('svg');
+            svg.attr("width", "100%").attr("height", 200).attr("id", "my_svg");
+            var svg_width = $("#my_svg").width();
+            //console.log(svg_width);//1557
+            var range1x = 50;
+            var range2x = svg_width - 50;
+            var ratio = (svg_width - 100) / 2000
+            var width = 6;
+
+            var high_whole;
+            var high_scale;
+            var high_line;
+            var high = 8;
+            var high_distance = 20;
+            //畫多邊形  
+            // 1 _____ 4
+            //  |_____|
+            // 2       3  
+            //有正的
+            if (Object.keys(record_level_pos).length != 0) {
+                for (i = 1; i < Object.keys(record_level_pos).length + 1; i++) {
+                    var high_top = Object.keys(record_level_pos).length - i//i-->1,2,3 high_top-->2,1,0
+                    //紀錄最低的那個y座標，用於畫line
+                    if (i == 1) {
+                        high_line = 20 + high_top * 2 * high + high
+                    }
+                    for (j = 0; j < record_level_pos[i].length; j++) {
+                        //console.log(record_level_pos[i][j][0]);
+                        var start = (high_top) * 2 * high;
+                        var location1x = range1x + record_level_pos[i][j][0] * ratio; var location1y = 20 + start;
+                        var location2x = range1x + record_level_pos[i][j][0] * ratio; var location2y = 20 + high + start;
+                        var location3x = range1x + record_level_pos[i][j][1] * ratio; var location3y = 20 + high + start;
+                        var location4x = range1x + record_level_pos[i][j][1] * ratio; var location4y = 20 + start;
+                        var location = location1x.toString() + "," + location1y.toString() + " " + location2x.toString() + "," + location2y.toString() + " " + location3x.toString() + "," + location3y.toString() + " " + location4x.toString() + "," + location4y.toString();
+
+                        svg.append('polygon').attr('points', location).attr("id", "pos_" + i.toString() + j.toString()).attr("fill", record_level_pos[i][j][2]);
+                        addHoverTip("#pos_" + i.toString() + j.toString(), record_level_pos[i][j][3]);
+
+                    }
+                }
+                //有負的 
+                if (Object.keys(record_level_neg).length != 0) {
+                    for (i = 1; i < Object.keys(record_level_neg).length + 1; i++) {
+                        for (j = 0; j < record_level_neg[i].length; j++) {
+                            //console.log("ok2");
+                            var start = (i - 1) * 2 * high;
+                            var location1x = range1x + record_level_neg[i][j][0] * ratio; var location1y = high_line + start
+                            var location2x = range1x + record_level_neg[i][j][0] * ratio; var location2y = high_line + high + start;
+                            var location3x = range1x + record_level_neg[i][j][1] * ratio; var location3y = high_line + high + start;
+                            var location4x = range1x + record_level_neg[i][j][1] * ratio; var location4y = high_line + start;
+                            var location = location1x.toString() + "," + location1y.toString() + " " + location2x.toString() + "," + location2y.toString() + " " + location3x.toString() + "," + location3y.toString() + " " + location4x.toString() + "," + location4y.toString();
+
+                            svg.append('polygon').attr('points', location).attr("id", "neg_" + i.toString() + j.toString()).attr("fill", record_level_neg[i][j][2]);
+                            addHoverTip("#neg_" + i.toString() + j.toString(), record_level_neg[i][j][3]);
+
+                        }
+                        //紀錄最低的那個y座標，用於畫scale
+                        if (i == Object.keys(record_level_neg).length) {
+                            high_scale = high_line + (i - 1) * 2 * high + high + 20;
+                            high_whole = high_scale + 20;
+                        }
+                    }
+                }
+                //沒負的
+                else {
+                    high_scale = high_line + 20;
+                    high_whole = high_scale + 20;
+                }
+            }
+            //沒正的
+            else {
+                high_line = 20;
+                //有負的 
+                if (Object.keys(record_level_neg).length != 0) {
+                    for (i = 1; i < Object.keys(record_level_neg).length + 1; i++) {
+                        for (j = 0; j < record_level_neg[i].length; j++) {
+                            //console.log("ok2");
+                            var start = (i - 1) * 2 * high;
+                            var location1x = range1x + record_level_neg[i][j][0] * ratio; var location1y = high_line + start
+                            var location2x = range1x + record_level_neg[i][j][0] * ratio; var location2y = high_line + high + start;
+                            var location3x = range1x + record_level_neg[i][j][1] * ratio; var location3y = high_line + high + start;
+                            var location4x = range1x + record_level_neg[i][j][1] * ratio; var location4y = high_line + start;
+                            var location = location1x.toString() + "," + location1y.toString() + " " + location2x.toString() + "," + location2y.toString() + " " + location3x.toString() + "," + location3y.toString() + " " + location4x.toString() + "," + location4y.toString();
+
+                            svg.append('polygon').attr('points', location).attr("id", "neg_" + i.toString() + j.toString()).attr("fill", record_level_neg[i][j][2]);
+                            addHoverTip("#neg_" + i.toString() + j.toString(), record_level_neg[i][j][3]);
+
+                        }
+                        //紀錄最低的那個y座標，用於畫scale
+                        if (i == Object.keys(record_level_neg).length) {
+                            high_scale = high_line + (i - 1) * 2 * high + high + 20;
+                            high_whole = high_scale + 20;
+                        }
+                    }
+                }
+                //沒負的
+                else {
+                    high_scale = high_line + 20;
+                    high_whole = high_scale + 20;
+                }
+            }
+
+
+            //改svg 高度
+            svg.attr("height", high_whole);
+
+            //畫線
+            svg.append("line").attr("x1", range1x).attr("x2", range2x).attr("y1", high_line).attr("y2", high_line).style("stroke", "black");
+
+            //比例尺
+            var myScale = d3.scaleLinear()
+                .domain([0, 2000]) // This is what is written on the Axis: from 0 to 2000
+                .range([range1x, range2x]); // This is where the axis is placed: from 100px to 800px
+
+            var ticks = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000]; //刻度
+
+            var myAxis = d3.axisBottom()
+                .scale(myScale)
+                .tickValues(ticks);
+
+            svg.append("g")
+                .attr("class", "axis")
+                .call(myAxis)
+                .attr("transform", "translate(0," + high_scale.toString() + ")"); // This controls the vertical position of the Axis
+        }
+
+        function plot_sequence(seq_data_pos, seq_data_neg, divider, seq_level_pos, seq_level_neg) {//seq_level_pos = {1: {1: [[306, 313, "#41fc53", "<table border='2'><tr><th>Matrix ID</th><th>Positi…],[]], 2: [306, 313, "#9f64a9", "<table border='2'><tr><th>Matrix ID</th><th>Positi…]} , 101: {1:[],...},201: {1:[]}...}
+            var svg = d3.select("#sequence").append('svg');
+            svg.attr("width", "100%").attr("height", 6000).attr("id", "my_svg2");
+            //var svg_width = $("#my_svg2").width();
+            //console.log(svg_width);//1873
+
+
+
+            //測試
+            /*var text_element = svg.select("text");
+            var textWidth = text_element.node().getComputedTextLength()
+            console.log(textWidth);//1180.97607421875*/
+            var text_length = 1180.97607421875;
+            var left = 50;
+            var ratio = text_length / 100;
+            var blank = "       ";
+
+            var top = 50;//與頂端距離
+            var high = 20;
+            var text_high = top;
+
+            for (i = 0; i < seq_data_pos.length; i++) {//i-->0,1,2,...19
+                //假如有正的部分的色塊
+                if (Object.keys(seq_level_pos[i * 100 + 1]).length != 0) {
+                    //console.log("ok1");
+                    for (j = Object.keys(seq_level_pos[i * 100 + 1]).length; j > 0; j--) {//3,2,1...
+                        var level_high = Object.keys(seq_level_pos[i * 100 + 1]).length - j;//j-->3,2,1 level_high-->0,1,2
+
+                        //console.log(seq_level_pos[i*100+1][j]);
+                        for (k = 0; k < seq_level_pos[i * 100 + 1][j].length; k++) {
+                            //console.log("pos_polygon");
+                            var level_start = text_high + level_high * 2 * high;//階層的起始位置
+                            var location1x = left + seq_level_pos[i * 100 + 1][j][k][0] * ratio; var location1y = level_start;
+                            var location2x = left + seq_level_pos[i * 100 + 1][j][k][0] * ratio; var location2y = level_start + high;
+                            var location3x = left + seq_level_pos[i * 100 + 1][j][k][1] * ratio; var location3y = level_start + high;
+                            var location4x = left + seq_level_pos[i * 100 + 1][j][k][1] * ratio; var location4y = level_start;
+                            var location = location1x.toString() + "," + location1y.toString() + " " + location2x.toString() + "," + location2y.toString() + " " + location3x.toString() + "," + location3y.toString() + " " + location4x.toString() + "," + location4y.toString();
+
+                            svg.append('polygon').attr('points', location).attr("id", "pos_" + (i * 100 + 1).toString() + i.toString() + j.toString()).attr("fill", seq_level_pos[i * 100 + 1][j][k][2]);
+                            addHoverTip("#pos_" + (i * 100 + 1).toString() + i.toString() + j.toString(), seq_level_pos[i * 100 + 1][j][k][3]);
+                        }
+
+                        //紀錄最低層的那個y座標，用於畫正的sequence
+                        if (j == 1) {
+                            text_high = text_high + level_high * 2 * high + high * 2;
+                        }
+                    }
+                    //console.log(text_high);
+                    //畫正的sequence
+                    svg.append("text").attr("x", left).attr("y", text_high).attr("font-size", "140%").attr("font-family", "'Lucida Console', Monaco, monospace").text(seq_data_pos[i] + blank + ((i + 1) * 100).toString());
+                    text_high = text_high + high
+                    //畫負的sequence
+                    svg.append("text").attr("x", left).attr("y", text_high).attr("font-size", "140%").attr("font-family", "'Lucida Console', Monaco, monospace").text(seq_data_neg[i]);
+                    //console.log(text_high);
+
+                    //假如有負的部分的色塊
+                    if (Object.keys(seq_level_neg[i * 100 + 1]).length != 0) {
+                        //console.log("ok2");
+                        for (j = 1; j < Object.keys(seq_level_neg[i * 100 + 1]).length + 1; j++) {//1，2, 3...
+
+                            //console.log(seq_level_neg[i*100+1][j]);
+                            for (k = 0; k < seq_level_neg[i * 100 + 1][j].length; k++) {
+                                //console.log("neg_polygon");
+                                var level_start = text_high + (j - 1) * 2 * high;//階層的起始位置
+                                var location1x = left + seq_level_neg[i * 100 + 1][j][k][0] * ratio; var location1y = level_start;
+                                var location2x = left + seq_level_neg[i * 100 + 1][j][k][0] * ratio; var location2y = level_start + high;
+                                var location3x = left + seq_level_neg[i * 100 + 1][j][k][1] * ratio; var location3y = level_start + high;
+                                var location4x = left + seq_level_neg[i * 100 + 1][j][k][1] * ratio; var location4y = level_start;
+                                var location = location1x.toString() + "," + location1y.toString() + " " + location2x.toString() + "," + location2y.toString() + " " + location3x.toString() + "," + location3y.toString() + " " + location4x.toString() + "," + location4y.toString();
+
+                                svg.append('polygon').attr('points', location).attr("id", "neg_" + (i * 100 + 1).toString() + i.toString() + j.toString()).attr("fill", seq_level_neg[i * 100 + 1][j][k][2]);
+                                addHoverTip("#neg_" + (i * 100 + 1).toString() + i.toString() + j.toString(), seq_level_neg[i * 100 + 1][j][k][3]);
+                            }
+
+                            //紀錄最高層的那個y座標，用於畫分隔線
+                            if (j == Object.keys(seq_level_neg[i * 100 + 1]).length) {
+                                text_high = text_high + (j - 1) * 2 * high + high * 2;
+                            }
+                        }
+                        //console.log(text_high);
+                        //畫分隔線
+                        svg.append("text").attr("x", left).attr("y", text_high).attr("font-size", "140%").attr("font-family", "'Lucida Console', Monaco, monospace").text(divider[i]);
+                    }
+
+                    //假如沒有負的部分的色塊
+                    else {
+
+                        text_high = text_high + high;
+                        //畫分隔線
+                        svg.append("text").attr("x", left).attr("y", text_high).attr("font-size", "140%").attr("font-family", "'Lucida Console', Monaco, monospace").text(divider[i]);
+                        //console.log(text_high);
+                    }
+                }
+                //假如沒有正的部分的色塊
+                else {
+
+                    text_high = text_high + high;//若沒有正的部分的色塊，則用此畫正的sequence
+                    //畫正的sequence
+                    svg.append("text").attr("x", left).attr("y", text_high).attr("font-size", "140%").attr("font-family", "'Lucida Console', Monaco, monospace").text(seq_data_pos[i] + blank + ((i + 1) * 100).toString());
+
+                    text_high = text_high + high
+                    //畫負的sequence
+                    svg.append("text").attr("x", left).attr("y", text_high).attr("font-size", "140%").attr("font-family", "'Lucida Console', Monaco, monospace").text(seq_data_neg[i]);
+
+                    //假如有負的部分的色塊
+                    if (Object.keys(seq_level_neg[i * 100 + 1]).length != 0) {
+                        //console.log("ok2");
+                        for (j = 1; j < Object.keys(seq_level_neg[i * 100 + 1]).length + 1; j++) {//1，2, 3...
+
+                            //console.log(seq_level_neg[i*100+1][j]);
+                            for (k = 0; k < seq_level_neg[i * 100 + 1][j].length; k++) {
+                                //console.log("neg_polygon");
+                                var level_start = text_high + (j - 1) * 2 * high;//階層的起始位置
+                                var location1x = left + seq_level_neg[i * 100 + 1][j][k][0] * ratio; var location1y = level_start;
+                                var location2x = left + seq_level_neg[i * 100 + 1][j][k][0] * ratio; var location2y = level_start + high;
+                                var location3x = left + seq_level_neg[i * 100 + 1][j][k][1] * ratio; var location3y = level_start + high;
+                                var location4x = left + seq_level_neg[i * 100 + 1][j][k][1] * ratio; var location4y = level_start;
+                                var location = location1x.toString() + "," + location1y.toString() + " " + location2x.toString() + "," + location2y.toString() + " " + location3x.toString() + "," + location3y.toString() + " " + location4x.toString() + "," + location4y.toString();
+
+                                svg.append('polygon').attr('points', location).attr("id", "neg_" + (i * 100 + 1).toString() + i.toString() + j.toString()).attr("fill", seq_level_neg[i * 100 + 1][j][k][2]);
+                                addHoverTip("#neg_" + (i * 100 + 1).toString() + i.toString() + j.toString(), seq_level_neg[i * 100 + 1][j][k][3]);
+                            }
+
+                            //紀錄最高層的那個y座標，用於畫分隔線
+                            if (j == Object.keys(seq_level_neg[i * 100 + 1]).length) {
+                                text_high = text_high + (j - 1) * 2 * high + high * 2;
+                            }
+                        }
+                        //畫分隔線
+                        svg.append("text").attr("x", left).attr("y", text_high).attr("font-size", "140%").attr("font-family", "'Lucida Console', Monaco, monospace").text(divider[i]);
+                        //console.log(text_high);
+                    }
+                    else {//假如沒有負的部分的色塊
+
+                        text_high = text_high + high;
+                        //畫分隔線
+                        svg.append("text").attr("x", left).attr("y", text_high).attr("font-size", "140%").attr("font-family", "'Lucida Console', Monaco, monospace").text(divider[i]);
+                    }
+                    //console.log(text_high);
+                }
+
+            }
+
+            //改svg 高度
+            svg.attr("height", text_high);
+
+        }
+
+        function addHoverTip(name, into_table) {
+            //console.log(name);
+            $(name).qtip({
+                content: {
+                    text: into_table
+                },
+                style: {
+                    classes: 'qtip-dark'//'#000000'
+                    //classes: 'qtip-dark qtip-jtools'
+                },
+                position: {
+                    target: $(name),
+                    my: 'bottom center',
+                    at: 'top center'//圖形上，箭頭中
+                },
+                show: {//動畫顯示
+                    effect: function (offset) {
+                        $(this).slideDown(100);
+                    }
+                },
+                hide: {
+                    fixed: true,
+                },
+
+            });
+
+        }
+    </script>
+
+</head>
+{% endblock %}
+
+{% block form %}
+
+<body>
+    <form id="form1" runat="server">
+        <h2 id="header" style="margin: 0 auto;width: 600px"></h2><br>
+        <div id="contain" class="ui container" style="width:auto;">
+            <!--margin: 0 上下邊界為0，左右根據寬度適應相同值，所以意思是水平居中。-->
+            <div id="pattern_result" class="ui segment">
+                <div class="ui blue inverted segment header block">
+                    <font size="4"><strong>Transcription factor Search Results</strong></font>
+                </div>
+                <div class="ui blue tertiary inverted segment" id="pattern" style="overflow-y:auto;max-height: 500px">
+                </div>
+            </div>
+            <div class="ui hidden divider"></div>
+            <div id="out_visualization" class="ui segment">
+                <div class='ui blue inverted segment header block'>
+                    <p>
+                        <font size='4'><strong>Visualization</strong></font>
+                    </p>
+                </div>
+                <div id='name_color2' class='ui segment'></div>
+            </div>
+            <div class="ui segment">
+                <div id="promoter_header" class="ui blue inverted segment header block">
+                    sequence name:<br>
+                    species: Arabidopsis thaliana<br>
+                    The optional promoter elements:
+                </div>
+                <div id="out_sequence" class="ui segment">
+                    <div id='name_color3' class='ui segment'></div>
+                    <!--monospace=等寬體，3種字體，優先順序從左到右-->
+                    <!--<font style="font-family:'Lucida Console', Monaco, monospace">
+
+                <table id="sequence_result" align="center" width="100%">
+                    <tr style="line-height:120%;font-size:140%;">
+                        <td id="sequence_data" style="text-align:justify" width="70%">
+
+                        </td>
+                        <td id="num" style="padding:0;text-align:left;" width="30%">
+                            100<br><br><br>200<br><br><br>
+
+                        </td>
+                    </tr>
+                    <tr>
+                        <td  id="name_color" colspan="3" style="font-size:95%">
+                           
+                        </td>
+                    </tr>
+                </table>
+                </font>-->
+                </div>
+            </div>
+
+
+
+            <!--tooltip範例:http://jsfiddle.net/44khF/200/?fbclid=IwAR3Bg2oZuUNe4_Wlz3pu6UKuGvFhp_y_PTQFtODsxYPQmWUvwIFaWh9QkWw-->
+
+
+        </div>
+        <footer id="footer" />
+        </div>
+    </form>
+</body>
+
+{% endblock %}

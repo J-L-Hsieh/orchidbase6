@@ -1,0 +1,96 @@
+﻿#mainNav
+{
+    /* test code 
+    border-color: green;
+    border-style: solid;*/
+	font-family: tahoma,arial,sans-serif;
+    float: left;
+    width: 100%;	
+	margin-left: 4px;
+}
+
+#mainNav .menu-item .hover-menu
+{
+    display: none;
+    border: none;
+}
+
+#mainNav .menu-item:hover .hover-menu
+{
+    display: block;
+	white-space: normal;	
+	width: 163px;
+	position: absolute;
+	left: 0;
+	top: 21px;
+}
+
+#mainNav .menu-item:hover
+{
+	position: relative;
+}
+#mainNav .menu-item
+{
+	display: inline;
+}
+
+#mainNav > .menu-item > label
+{
+	/*width: 100px !important;*/
+	width: 130px !important;
+}
+
+.hover-menu > .menu-item > label
+{
+	width: 163px !important;
+	text-align: left;
+}
+
+body
+{
+	font-size: 11px;
+	font-family: arial,sans-serif;
+}
+
+h1
+{
+	margin: 4px 0 6px 6px;
+    font-size: large;
+    height: 27px;
+}
+
+#container
+{
+     width: 780px;
+     margin: 0 auto;
+	 min-height:500px;
+
+    /* test code 
+    border-color: Black;
+    border-style: solid;*/
+}
+
+#mainHeader
+{
+    /* test code
+    border-color: orange;
+    border-style: solid; */
+}
+
+#content
+{
+    /* test code 
+    border-color: red;
+    border-style: solid;*/
+	padding: 2px;
+	margin-left: 4px;
+}
+
+#footer
+{
+    /* test code 
+    border-color: blue;
+    border-style: solid;*/
+	padding: 2px;
+	margin-left: 4px;
+}

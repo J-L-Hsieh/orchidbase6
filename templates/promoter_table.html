@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+{% block script_var %}
+
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.22/css/jquery.dataTables.css">
+    <script type="text/javascript" charset="utf8"
+        src="https://cdn.datatables.net/1.10.22/js/jquery.dataTables.js"></script>
+    <script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
+    <!--畫圖用-->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <!--table樣式-->
+    <link rel="stylesheet" type="text/css" href="{% static 'css/superfish.css' %}" media="screen">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/Style.css' %}">
+    <!--需要此css置中用-->
+    <!-- semanticUI -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
+    <link rel="stylesheet" type="text/css"
+        href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css">
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('.ui.dropdown').dropdown({ on: 'hover' });
+        });
+    </script>
+    <script src="{% static 'js/jquery.blockUI.js' %}"></script>
+    <!--讀取中-->
+    <style type="text/css">
+        .dataTable thead tr {
+            background-color: #272727;
+            color: white;
+        }
+
+
+        .style7 {
+            text-align: left;
+            width: 109px;
+        }
+
+        .auto-style1 {
+            height: 29px;
+        }
+
+        .auto-style2 {
+            text-align: left;
+            width: 109px;
+            height: 29px;
+        }
+    </style>
+
+    <script type='text/javascript'>
+        $(document).ready(function () {
+            $.ajaxSetup({
+                data: {
+                    csrfmiddlewaretoken: '{{ csrf_token  }}'
+                },
+            });
+
+            var href = window.location.href;
+            var temp = href.split("=");//[http://140.116.214.130/t50504_project/GeneExpression/?type,Phalaenopsis]
+            //console.log(temp.length);
+
+            $.blockUI({
+                css: {
+                    border: 'none',
+                    padding: '15px',
+                    backgroundColor: '#000',
+                    '-webkit-border-radius': '10px',
+                    '-moz-border-radius': '10px',
+                    opacity: .5,
+                    color: '#fff',
+                    message: "Loding..."
+                }
+            });
+            //console.log(window.location.href);
+            var start_time1 = new Date().getTime();
+            if (temp.length == 1) {
+                var Type = "Phalaenopsis";
+            }
+            else {
+                var Type = temp[1];
+            }
+
+            $("#select").val(Type);
+            var species = $("#select2").val();
+
+            $.ajax({
+                url: '/orchidbase6/promoter/promoter_table_data/',
+                data: { 'type': Type, 'species': species },
+                type: 'POST',
+                dataType: 'json',
+                success: function (data) {
+                    console.log(data)
+
+                    var header = [];
+
+                    for (var j = 0; j < data[0].length; j++) {
+                        var temp = {};
+                        temp["title"] = data[0][j];
+                        //console.log(temp);
+                        header.push(temp);
+                        // console.log(header);
+                    }
+                    //console.log(header);
+                    var body = data[1];
+                    //調整datatable參數
+                    $('#mydiv').empty();
+                    $('#mydiv').html("<table id='myDataTable'  class='table table-hover dt-responsive order-columnmemberList tblFormat cell-border table-striped' border='1'></table>");
+                    var end_time1 = new Date().getTime();
+                    console.log("後端花:" + (end_time1 - start_time1) / 1000 + "sec");
+
+                    var start_time2 = new Date().getTime();
+                    $('#myDataTable').DataTable(
+                        {
+                            data: body,
+                            columns: header,
+                            //"scrollX": true,
+                            "deferRender": true,
+                            "columnDefs": [
+                                {
+                                    "targets": 3,
+                                    //"data": "Gene ID",
+                                    "render": function (data, type, row, meta) {
+                                        return "<a href='https://cosbi.ee.ncku.edu.tw/orchidbase6/promoter/promoter_detail/?species=" + species + "?type=" + row[0] + "?id=" + row[1] + "' target='_blank'>" + data + "</a>";
+                                        //return '<a href="/t50504_project/GeneAnnotation/'+data+'" target="_blank">'+ data +'</a>';
+                                    }
+                                }]
+
+                        }
+                    );
+                    var end_time2 = new Date().getTime();
+                    console.log("datatable餵資料加連結:" + (end_time2 - start_time2) / 1000 + "sec");
+                    $.unblockUI(); //Loading...跑完後關掉
+
+                },
+                error: function () {
+                    console.log("error");
+                    $.unblockUI(); //Loading...跑完後關掉
+                },
+            });
+
+
+
+            $("#View").click(function () {
+                var href = window.location.href;//[http://140.116.214.130/t50504_project/GeneExpression/?type,Phalaenopsis] 
+                var temp = href.split("=");
+
+                $.blockUI({
+                    css: {
+                        border: 'none',
+                        padding: '15px',
+                        backgroundColor: '#000',
+                        '-webkit-border-radius': '10px',
+                        '-moz-border-radius': '10px',
+                        opacity: .5,
+                        color: '#fff',
+                        message: "Loding..."
+                    }
+                });
+
+
+                var type = $("#select").val();
+                //window.location.href="http://140.116.214.130/t50504_project/GeneExpression/?type=" + type;//此寫法雖會讓url同步，但會同時刷新頁面導致下面ajax沒執行
+                var species = $("#select2").val();
+
+                $.ajax({
+                    url: '/orchidbase6/promoter/promoter_table_data/',
+                    data: { 'type': type, 'species': species },
+                    type: 'POST',
+                    dataType: 'json',
+                    success: function (data) {
+                        console.log(data);
+                        var header = [];
+
+                        for (var j = 0; j < data[0].length; j++) {
+                            var temp = {};
+                            temp["title"] = data[0][j];
+                            //console.log(temp);
+                            header.push(temp);
+                            // console.log(header);
+                        }
+                        //console.log(header);
+                        var body = data[1];
+
+                        //調整datatable參數
+                        //$('#myDataTable').DataTable().clear().destroy();//先clear前一次的DataTable
+                        $('#mydiv').empty();
+                        $('#mydiv').html("<table id='myDataTable'  class='table table-hover dt-responsive order-columnmemberList tblFormat cell-border table-striped' border='1'></table>");
+                        $('#myDataTable').DataTable(
+                            {
+                                //destroy:true,
+                                //retrieve:true,
+                                data: body,
+                                columns: header,
+                                //"scrollX": true,
+                                "deferRender": true,
+                                "columnDefs": [
+                                    {
+                                        "targets": 3,
+                                        //"data": "Gene ID",
+                                        "render": function (data, type, row, meta) {
+                                            return "<a href='https://cosbi.ee.ncku.edu.tw/orchidbase6/promoter/promoter_detail/?species=" + species + "?type=" + row[0] + "?id=" + row[1] + "' target='_blank'>" + data + "</a>";
+                                            //return '<a href="/t50504_project/GeneAnnotation/'+data+'" target="_blank">'+ data +'</a>';
+                                        }
+                                    }]
+
+                            }
+                        );
+                        $.unblockUI(); //Loading...跑完後關掉
+                    },
+                    error: function () {
+                        console.log("error");
+                        $.unblockUI(); //Loading...跑完後關掉
+                    },
+                });
+            })
+
+        })
+
+    </script>
+
+</head>
+{% endblock %}
+
+{% block form %}
+
+<body>
+    <form id="form1" runat="server">
+        <div id="contain" style="margin: 0 auto;width: 800px">
+            <header id="mainHeader">
+                <img src="{% static 'img/banner.jpg'%}" alt="Banner" />
+            </header>
+        </div>
+        <div style="width:100%">
+            <br>
+            <div id="content">
+                <table>
+                    <tr>
+                        <td><a href="#" onclick="javascript:history.back();" style="font-size:larger">back</a></td>
+                    </tr>
+                    <tr>
+                        <td bgcolor="#0066FF" class="style5" style="color: #FFFFFF">Select Transcription Factor Library
+                        </td>
+                        <td class="style6" id="select_library2">
+                            <select id="select2">
+                                <option value="ath">Arabidopsis thaliana</option>
+                                <option value="osa">Oryza sativa</option>
+                            </select>
+                        </td>
+                        <td bgcolor="#0066FF" class="style5" style="color: #FFFFFF">Select Library</td>
+                        <td class="style6" id="select_library">
+                            <select id="select">
+                                <option value="Phalaenopsis">Phalaenopsis</option>
+                                <option value="Dendrobium">Dendrobium</option>
+                                <option value="Apostasia">Apostasia</option>
+                                <option value="Vpompona">Vpompona</option>
+                                <option value="Vshenzhenica">Vshenzhenica</option>
+                                <option value="Pguangdongensis">Pguangdongensis</option>
+                                <option value="Pzijinensis">Pzijinensis</option>
+                                <option value="Ldiscolor">Ldiscolor</option>
+                            </select>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td class="auto-style1">
+                            <input type="button" value="View/Search" id="View">
+                        </td>
+                    </tr>
+                </table><br>
+
+
+                <div id="mydiv">
+
+                </div>
+            </div>
+            <footer id="footer" />
+        </div>
+    </form>
+</body>
+{% endblock %}

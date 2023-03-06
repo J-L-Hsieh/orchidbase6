@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+
+{% block script_var %}
+<!-- jquery -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+{% endblock %}
+
+
+{% block form %}
+<form id="form1" runat="server">
+<div id="container" style="width:1000px"><!--置中用-->
+<header id="mainHeader">
+    <img src="{% static 'img/banner.jpg' %}" alt="Banner" />
+    <br>
+</header>
+<br> 
+    <div id="content">
+        <font size="4"><b>Citation</b></font><br>
+        <table style =" width:1000px">
+            <tr>
+                <td class="auto-style1" colspan="2">
+                    <b>Fu C-H, Chen Y-W, Hsiao Y-Y, Pan Z-J, Liu Z-J, Huang Y-M, Tsai W-C, Chen H-H</b> (2011) OrchidBase: a collection of sequences of the transcriptome derived from orchids. <i>Plant and Cell Physiology</i> 52: 238-243 
+                <br><br>
+                </td>    
+                <td align="right">
+                    <input type="button" onclick="window.open('https://www.ncbi.nlm.nih.gov/pubmed/?term=21245031', '_blank')" style="background-image:url({% static 'img/link2.jpg' %}); width:47px; height:36px; border: none; background-size:contain;background-repeat: no-repeat;"/>
+                    <map name="linkmap1">
+                    <area shape="rect" coords="7, 7, 48, 29" href="https://www.ncbi.nlm.nih.gov/pubmed/?term=21245031" target="_blank" alt="1" />
+                    </map>
+                </td>
+       
+            </tr>               
+            <tr>
+                <td class="auto-style2" colspan="2">
+                    <b>Tsai W-C, Fu C-H, Hsiao Y-Y, Huang Y-M, Chen L-J, Wang M, Liu Z-J, Chen H-H</b> (2013) OrchidBase 2.0: comprehensive collection of Orchidaceae floral transcriptomes. <i>Plant and Cell Physiology</i> 54: e7
+                <br><br>
+                </td>
+                <td align="right" class="auto-style2">
+                   <input type="button" onclick="window.open('https://www.ncbi.nlm.nih.gov/pubmed/?term=23314755', '_blank')" style="background-image:url({% static 'img/link2.jpg' %}); width:47px; height:36px;border: none; background-size:contain;background-repeat: no-repeat;"/>                      
+                </td>
+            </tr>
+
+
+            <tr>
+                <td>
+                    <b>Tsai W-C, Fu C-H, Hsiao YY, Wu W-L, Zhang D-Y, Lan S-R, Liu Z-J, Chen H-H</b> (2019) OrchidBase 3.0: a resource for studying gene function and genome evolution in orchids. Journal of Fujian Agriculture and Forestry University (Natural Science Edition)<br><br>
+                </td>
+                <td>
+                    <!--<a href="https://www.cabdirect.org/cabdirect/abstract/20219924053">link</a>-->
+                    <button type="button" class="ui yellow button" onclick="location.href='https://www.cabdirect.org/cabdirect/abstract/20219924053'">Link</button>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <b>Hsiao YY, Fu C-H, Ho S-Y, Li C-L, Chen Y-Y, Wu W-L, Wang J-S, Zhang D-Y, Hu W-Q, Yu X, Sun W-H, Zhou Z, Liu K-W, Li C-Y, Huang L, Chen H-H, Wu W-S*, Liu Z-J*, Tsai W-C*</b> (2021) OrchidBase 4.0: a database for orchid genomics and molecular biology. BMC Genomics
+                </td>
+            </tr>
+
+        </table>
+
+          <br >
+          <br >
+          <br >
+        <img src="{% static 'img/OrchidBase6.0.jpg' %}" border="0" alt="Characteristics of orchid species" id="Characteristics of orchid species" style="height: 100%; width: 100%" />
+
+
+    </div>     
+    </div>
+</form>
+{% endblock %}
+
+
+
